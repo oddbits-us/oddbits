@@ -232,9 +232,17 @@ oddbits/
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
-Contributions welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+### Ways to Contribute
+
+- Report bugs
+- Suggest new bits or features
+- Submit pull requests
+- Improve documentation
+- Share feedback and ideas
 

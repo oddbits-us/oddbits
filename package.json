@@ -3,6 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "description": "A collection of useful tools for web/app developers and designers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oddbits-us/oddbits.git"
+  },
+  "keywords": [
+    "tools",
+    "utilities",
+    "developer-tools",
+    "image-processing",
+    "web-components"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/oddbits-us/oddbits/issues"
+  },
+  "homepage": "https://github.com/oddbits-us/oddbits#readme",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
