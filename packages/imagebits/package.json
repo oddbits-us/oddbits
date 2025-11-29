@@ -1,0 +1,45 @@
+{
+  "name": "@oddbits/imagebits",
+  "version": "0.1.0",
+  "description": "Image processing tools: resize, optimize, and convert formats",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./browser": {
+      "import": "./dist/browser.mjs",
+      "types": "./dist/browser.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "oddbits",
+    "image",
+    "resize",
+    "optimize",
+    "webp",
+    "convert"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@oddbits/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}
+
