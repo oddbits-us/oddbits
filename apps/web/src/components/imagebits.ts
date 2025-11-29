@@ -3,9 +3,8 @@
  * Vanilla TypeScript Web Component for image processing
  */
 
-import { imageBits } from '@oddbits/imagebits';
+import { processImage, imageBits } from '@oddbits/imagebits';
 import type { ImageBitsOptions } from '@oddbits/imagebits';
-import type { BitInput } from '@oddbits/core';
 
 export class ImageBitsElement extends HTMLElement {
   private fileInput: HTMLInputElement | null = null;
@@ -38,18 +37,9 @@ export class ImageBitsElement extends HTMLElement {
 
       <div class="controls" id="controls" style="display: none;">
         <div class="control-group">
-          <label>Resize</label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <input type="number" id="width" placeholder="Width" min="1">
-            <input type="number" id="height" placeholder="Height" min="1">
-          </div>
-          <select id="fit">
-            <option value="contain">Contain</option>
-            <option value="cover">Cover</option>
-            <option value="fill">Fill</option>
-            <option value="inside">Inside</option>
-            <option value="outside">Outside</option>
-          </select>
+          <label>Max Dimension (px)</label>
+          <input type="number" id="max-dimension" placeholder="e.g. 800" min="1">
+          <small>Maximum width or height in pixels</small>
         </div>
 
         <div class="control-group">
@@ -105,9 +95,18 @@ export class ImageBitsElement extends HTMLElement {
     const qualitySlider = this.querySelector('#quality') as HTMLInputElement;
     const qualityValue = this.querySelector('#quality-value') as HTMLElement;
     if (qualitySlider && qualityValue) {
-      qualitySlider.addEventListener('input', () => {
-        qualityValue.textContent = `${qualitySlider.value}%`;
-      });
+      const updateQualityLabel = () => {
+        const raw = parseInt(qualitySlider.value || '0', 10);
+        const clamped = Math.min(100, Math.max(0, isNaN(raw) ? 0 : raw));
+        qualityValue.textContent = `${clamped}%`;
+      };
+
+      // Set initial label
+      updateQualityLabel();
+
+      // Update on slider change
+      qualitySlider.addEventListener('input', updateQualityLabel);
+      qualitySlider.addEventListener('change', updateQualityLabel);
     }
   }
 
@@ -203,50 +202,30 @@ export class ImageBitsElement extends HTMLElement {
     try {
       const options: ImageBitsOptions = {};
 
-      // Resize options
-      const widthInput = this.querySelector('#width') as HTMLInputElement;
-      const heightInput = this.querySelector('#height') as HTMLInputElement;
-      const fitSelect = this.querySelector('#fit') as HTMLSelectElement;
-
-      const width = widthInput?.value ? parseInt(widthInput.value) : undefined;
-      const height = heightInput?.value ? parseInt(heightInput.value) : undefined;
-
-      if (width || height) {
-        options.resize = {
-          width,
-          height,
-          fit: (fitSelect?.value as any) || 'contain',
-        };
+      // Max dimension
+      const maxDimensionInput = this.querySelector('#max-dimension') as HTMLInputElement;
+      const maxDimension = maxDimensionInput?.value ? parseInt(maxDimensionInput.value) : undefined;
+      if (maxDimension) {
+        options.maxDimension = maxDimension;
       }
 
-      // Format conversion
+      // Format
       const formatSelect = this.querySelector('#format') as HTMLSelectElement;
       const format = formatSelect?.value;
       if (format && format !== 'original') {
-        options.convert = {
-          format: format as any,
-        };
+        options.format = format as any;
       }
 
       // Quality
       const qualityInput = this.querySelector('#quality') as HTMLInputElement;
       const quality = qualityInput?.value ? parseInt(qualityInput.value) / 100 : undefined;
       if (quality) {
-        if (options.convert) {
-          options.convert.quality = quality;
-        } else {
-          options.optimize = { quality };
-        }
+        options.quality = quality;
       }
 
       // Process
-      const input: BitInput = {
-        type: 'file',
-        data: this.currentFile,
-      };
-
-      const output = await imageBits.process(input, options);
-      this.processedBlob = output.data as Blob;
+      const result = await processImage(this.currentFile, options);
+      this.processedBlob = result.blob;
 
       // Show preview
       if (this.previewImage && this.processedBlob) {
@@ -256,8 +235,8 @@ export class ImageBitsElement extends HTMLElement {
       }
 
       // Show metadata
-      if (this.previewInfo && output.metadata) {
-        const metadata = output.metadata as any;
+      if (this.previewInfo && result.metadata) {
+        const metadata = result.metadata;
         const originalSize = metadata.originalSize 
           ? this.formatBytes(metadata.originalSize) 
           : 'N/A';
@@ -275,11 +254,9 @@ export class ImageBitsElement extends HTMLElement {
         `;
       }
 
-      // Show logs
-      if (this.logs && output.logs) {
-        this.logs.innerHTML = output.logs
-          .map(log => `<div class="log-entry">${this.escapeHtml(log)}</div>`)
-          .join('');
+      // Logs not available in simple API, but we can show success message
+      if (this.logs) {
+        this.logs.innerHTML = `<div class="log-entry">✓ Image processed successfully</div>`;
         this.logs.classList.add('active');
       }
     } catch (err) {

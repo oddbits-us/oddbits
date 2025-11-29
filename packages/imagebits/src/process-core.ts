@@ -1,6 +1,6 @@
 /**
  * Core image processing function
- * Used by both the simple API and the BitPlugin interface
+ * Used by both the public API and the BitPlugin interface
  */
 
 import type { BitInput, BitOutput } from '@oddbits/core';
@@ -15,9 +15,9 @@ import { convertImage } from './processors/convert';
  */
 export async function processImage(
   input: BitInput,
-  options: ImageBitsOptions = {},
-  maxDimension?: number
+  options: ImageBitsOptions = {}
 ): Promise<BitOutput> {
+  const { maxDimension, format, quality = 0.92 } = options;
   const logs: string[] = [];
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
@@ -39,22 +39,13 @@ export async function processImage(
       throw new Error('Canvas not supported');
     }
 
-    // Handle maxDimension if provided (simple API)
-    let resizeOptions = options.resize;
-    if (maxDimension && !resizeOptions) {
-      // Apply maxDimension constraint - resize if image is larger
-      if (originalWidth > maxDimension || originalHeight > maxDimension) {
-        if (originalWidth > originalHeight) {
-          resizeOptions = { width: maxDimension, fit: 'inside', withoutEnlargement: true };
-        } else {
-          resizeOptions = { height: maxDimension, fit: 'inside', withoutEnlargement: true };
-        }
+    // Handle maxDimension - resize if image is larger
+    if (maxDimension && (originalWidth > maxDimension || originalHeight > maxDimension)) {
+      if (originalWidth > originalHeight) {
+        resizeImage(image, canvas, { width: maxDimension, fit: 'inside', withoutEnlargement: true });
+      } else {
+        resizeImage(image, canvas, { height: maxDimension, fit: 'inside', withoutEnlargement: true });
       }
-    }
-
-    // Resize if needed
-    if (resizeOptions) {
-      resizeImage(image, canvas, resizeOptions);
       logs.push(`Resized to: ${canvas.width}x${canvas.height}`);
     } else {
       canvas.width = originalWidth;
@@ -63,22 +54,16 @@ export async function processImage(
     }
 
     // Determine output format
-    const outputFormat = options?.convert?.format || originalFormat;
-    const finalFormat = outputFormat === 'original' ? originalFormat : outputFormat;
+    const outputFormat = format && format !== 'original' ? format : originalFormat;
 
     // Convert/optimize
     let blob: Blob;
-    if (options?.convert && outputFormat !== 'original') {
-      blob = await convertImage(canvas, {
-        format: finalFormat as any,
-        quality: options.convert.quality || options.optimize?.quality,
-      });
-      logs.push(`Converted to: ${finalFormat}`);
-    } else if (options?.optimize) {
-      blob = await optimizeImage(canvas, finalFormat, options.optimize);
-      logs.push(`Optimized: ${finalFormat}`);
+    if (format && format !== 'original') {
+      blob = await convertImage(canvas, outputFormat as any, quality);
+      logs.push(`Converted to: ${outputFormat}`);
     } else {
-      blob = await optimizeImage(canvas, finalFormat, { quality: 1.0 });
+      blob = await optimizeImage(canvas, outputFormat, { quality });
+      logs.push(`Optimized: ${outputFormat}`);
     }
 
     const processingTime = typeof performance !== 'undefined'
@@ -89,7 +74,7 @@ export async function processImage(
     const metadata: ImageMetadata = {
       width: canvas.width,
       height: canvas.height,
-      format: finalFormat,
+      format: outputFormat,
       size: blob.size,
       originalSize: input.data instanceof File ? input.data.size : undefined,
     };

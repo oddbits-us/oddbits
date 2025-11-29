@@ -4,30 +4,55 @@
 
 export type ImageFormat = 'webp' | 'avif' | 'png' | 'jpg' | 'jpeg' | 'original';
 
-export type FitMode = 'contain' | 'cover' | 'fill' | 'inside' | 'outside';
-
-export interface ResizeOptions {
-  width?: number;
-  height?: number;
-  fit?: FitMode;
-  withoutEnlargement?: boolean;
-}
-
-export interface OptimizeOptions {
-  quality?: number; // 0-100
-  progressive?: boolean; // For JPEG
-  compressionLevel?: number; // For PNG, 0-9
-}
-
-export interface ConvertOptions {
-  format: ImageFormat;
+export interface ImageBitsOptions {
+  /**
+   * Maximum dimension (width or height) in pixels.
+   * Image will be resized to fit within this dimension while maintaining aspect ratio.
+   */
+  maxDimension?: number;
+  
+  /**
+   * Output format. If not specified, keeps original format.
+   */
+  format?: ImageFormat;
+  
+  /**
+   * Quality (0-1). Default: 0.92
+   */
   quality?: number;
 }
 
-export interface ImageBitsOptions {
-  resize?: ResizeOptions;
-  optimize?: OptimizeOptions;
-  convert?: ConvertOptions;
+export interface ImageBitsResult {
+  /**
+   * Processed image as Blob
+   */
+  blob: Blob;
+  
+  /**
+   * Image metadata
+   */
+  metadata: {
+    width: number;
+    height: number;
+    format: string;
+    size: number; // bytes
+    originalSize?: number;
+  };
+  
+  /**
+   * Get the processed image as a data URL
+   */
+  toDataURL(): Promise<string>;
+  
+  /**
+   * Get the processed image as an ArrayBuffer
+   */
+  toArrayBuffer(): Promise<ArrayBuffer>;
+  
+  /**
+   * Download the image (browser only)
+   */
+  download(filename?: string): void;
 }
 
 export interface ImageMetadata extends Record<string, unknown> {
@@ -37,4 +62,3 @@ export interface ImageMetadata extends Record<string, unknown> {
   size: number; // bytes
   originalSize?: number;
 }
-

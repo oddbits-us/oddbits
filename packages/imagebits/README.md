@@ -11,10 +11,10 @@ npm install @oddbits/imagebits
 ## Quick Start
 
 ```typescript
-import { processImageSimple } from '@oddbits/imagebits';
+import { processImage } from '@oddbits/imagebits';
 
 // Process an image with simple parameters
-const result = await processImageSimple(file, {
+const result = await processImage(file, {
   maxDimension: 800,  // Max width or height in pixels
   format: 'webp',     // Output format
   quality: 0.9        // Quality (0-1)
@@ -28,14 +28,14 @@ const buffer = await result.toArrayBuffer();
 result.download('optimized.webp');
 ```
 
-## Simple API
+## API
 
-The `processImageSimple` function is designed for easy integration into workflows, CMS systems, and build processes.
+The `processImage` function is designed for easy integration into workflows, CMS systems, and build processes.
 
 ### Parameters
 
 ```typescript
-processImageSimple(
+processImage(
   input: File | Blob | ArrayBuffer | string,  // Image input
   options?: {
     maxDimension?: number;    // Max width/height in pixels (maintains aspect ratio)
@@ -68,11 +68,11 @@ processImageSimple(
 ### CMS Integration
 
 ```typescript
-import { processImageSimple } from '@oddbits/imagebits';
+import { processImage } from '@oddbits/imagebits';
 
 // Process uploaded image in CMS
 async function handleImageUpload(file: File) {
-  const result = await processImageSimple(file, {
+  const result = await processImage(file, {
     maxDimension: 1200,
     format: 'webp',
     quality: 0.85
@@ -92,7 +92,7 @@ async function handleImageUpload(file: File) {
 ### Build Process
 
 ```typescript
-import { processImageSimple } from '@oddbits/imagebits';
+import { processImage } from '@oddbits/imagebits';
 import fs from 'fs';
 
 // Process images during build
@@ -101,7 +101,7 @@ async function optimizeImages() {
   
   for (const file of files) {
     const buffer = fs.readFileSync(`./src/images/${file}`);
-    const result = await processImageSimple(buffer, {
+    const result = await processImage(buffer, {
       maxDimension: 1920,
       format: 'webp',
       quality: 0.9
@@ -117,34 +117,10 @@ async function optimizeImages() {
 
 ```typescript
 // Process image from URL
-const result = await processImageSimple('https://example.com/image.jpg', {
+const result = await processImage('https://example.com/image.jpg', {
   maxDimension: 800,
   format: 'webp'
 });
-```
-
-## Advanced API
-
-For more control, you can use the full `ImageBitsOptions` interface:
-
-```typescript
-import { imageBits } from '@oddbits/imagebits';
-
-const result = await imageBits.process(
-  { type: 'file', data: file },
-  {
-    resize: {
-      width: 800,
-      height: 600,
-      fit: 'contain',  // 'contain' | 'cover' | 'fill' | 'inside' | 'outside'
-      withoutEnlargement: true
-    },
-    convert: {
-      format: 'webp',
-      quality: 0.9
-    }
-  }
-);
 ```
 
 ## Supported Formats

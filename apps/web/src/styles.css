@@ -297,6 +297,13 @@ odd-imagebits select {
   font-family: inherit;
 }
 
+odd-imagebits small {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  display: block;
+  margin-top: var(--spacing-xs);
+}
+
 odd-imagebits input[type="number"]:focus,
 odd-imagebits select:focus {
   outline: none;
@@ -313,6 +320,13 @@ odd-imagebits .range-value {
   font-size: 0.85rem;
   color: var(--color-accent);
   text-align: right;
+  display: inline-block;
+  min-width: 3ch; /* ensure space for two digits + % */
+  margin-left: var(--spacing-sm);
+  /* Use body font for better numeric legibility (avoid pixel font here) */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
 }
 
 odd-imagebits button {
