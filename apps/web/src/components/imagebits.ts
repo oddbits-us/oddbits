@@ -24,7 +24,7 @@ export class ImageBitsElement extends HTMLElement {
     this.innerHTML = `
       <div class="tool-header">
         <div>
-          <div class="tool-title">ImageBits</div>
+          <div class="tool-title">🖼️ ImageBits</div>
           <div class="tool-description">${imageBits.description}</div>
         </div>
       </div>
