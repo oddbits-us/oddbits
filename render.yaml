@@ -1,24 +1,18 @@
-# Render Blueprint (https://render.com/docs/infrastructure-as-code)
+# Synced with Render dashboard (Generate Blueprint from static site `oddbits`).
+# https://render.com/docs/infrastructure-as-code
 #
-# Local edits: change this file and push. Render syncs the Blueprint from the
-# branch you linked in Dashboard → your Blueprint → Settings (often `main`).
-#
-# One-time setup: Dashboard → New → Blueprint → Connect `oddbits-us/oddbits`,
-# confirm `render.yaml` at repo root, Deploy. Leave "Auto Sync" enabled so
-# pushes apply config changes. Git-linked services rebuild on each push to
-# the linked branch when auto-deploy is on (below).
-#
-# If you already have a manually created Static Site, prefer "Generate
-# Blueprint" from that service or add its exact `name` here so Render binds
-# to the existing resource instead of creating a duplicate.
-#
-services:
-  - type: web
-    name: oddbits
-    runtime: static
-    # No `plan` here — Blueprint rejects `free` for type web; static sites use Render's static/CDN defaults when omitted.
-    # Deploy on every push to the repo default branch (set `branch` if you
-    # must override; use `checksPass` to wait for GitHub checks — needs GH integration).
-    autoDeployTrigger: commit
-    buildCommand: pnpm install --frozen-lockfile && pnpm build
-    staticPublishPath: ./apps/web/dist
+# Do not duplicate resources under top-level `services:` — use `projects` only (Blueprint v1).
+version: "1"
+
+projects:
+  - name: My project
+    environments:
+      - name: Production
+        services:
+          - type: web
+            name: oddbits
+            runtime: static
+            repo: https://github.com/oddbits-us/oddbits
+            buildCommand: pnpm install --frozen-lockfile && pnpm build
+            staticPublishPath: apps/web/dist
+            autoDeployTrigger: commit
