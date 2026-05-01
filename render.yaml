@@ -5,7 +5,7 @@
 version: "1"
 
 projects:
-  - name: My project
+  - name: Oddbits
     environments:
       - name: Production
         services:
