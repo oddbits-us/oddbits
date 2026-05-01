@@ -16,7 +16,7 @@ services:
   - type: web
     name: oddbits
     runtime: static
-    plan: free
+    # No `plan` here — Blueprint rejects `free` for type web; static sites use Render's static/CDN defaults when omitted.
     # Deploy on every push to the repo default branch (set `branch` if you
     # must override; use `checksPass` to wait for GitHub checks — needs GH integration).
     autoDeployTrigger: commit
