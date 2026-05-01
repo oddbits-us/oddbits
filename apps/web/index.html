@@ -7,38 +7,81 @@
   <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
-  <header>
+  <!-- Parallax Background Layers -->
+  <div class="bg-layer distant"></div>
+  <div class="bg-layer grid"></div>
+
+  <header class="anime-header">
     <h1>Oddbits</h1>
-    <p>A collection of useful tools for web/app developers and designers</p>
+    <p>A growing collection of rad developer tools and utilities</p>
+    <div class="hero-copy">
+      <p>Oddbits is an open-source project dedicated to bringing back the fun and flavor of classic 16-bit software into modern, powerful web utilities. Whether you need to process images, generate code, or tweak assets, we've got the tools for your cyberpunk toolbelt.</p>
+    </div>
   </header>
 
   <main>
-    <section id="tools">
-      <h2>Tools</h2>
+    <section id="tools" class="anime-section">
+      <h2>Available Tools</h2>
       <ul class="tools-list">
-        <li class="tool-item">
+        <li class="tool-item anime-item">
           <div class="tool-icon">🖼️</div>
           <div class="tool-info">
             <h3>ImageBits</h3>
             <p>Resize, optimize, and convert images to webp, avif, png, jpg</p>
             <a href="https://github.com/oddbits-us/oddbits/tree/main/packages/imagebits" target="_blank" rel="noopener noreferrer" class="tool-link">
-              View on GitHub →
+              View Source →
             </a>
           </div>
         </li>
       </ul>
       
-      <div class="tools-grid">
+      <div class="tools-grid anime-item">
         <odd-imagebits></odd-imagebits>
       </div>
+    </section>
+
+    <section id="documentation" class="anime-section">
+      <h2>How to Use in Your Project</h2>
+      <div class="docs-section anime-item">
+        <h3>Install via NPM</h3>
+        <pre><code>npm install @oddbits/imagebits</code></pre>
+        <p>Integrate our fast, optimized tools directly into your NodeJS or frontend builds.</p>
+      </div>
+      
+      <div class="docs-section anime-item">
+        <h3>Basic Usage</h3>
+        <pre><code>import { processImage } from '@oddbits/imagebits';
+
+// Convert any image to WebP with max 800px width
+const result = await processImage(file, {
+  format: 'webp',
+  maxDimension: 800,
+  quality: 0.92
+});</code></pre>
+      </div>
+    </section>
+
+    <section id="coming-soon" class="anime-section">
+      <h2>Coming Soon</h2>
+      <ul class="tools-list">
+        <li class="tool-item anime-item" style="opacity: 0.7;">
+          <div class="tool-icon">🔮</div>
+          <div class="tool-info">
+            <h3>More Bits...</h3>
+            <p>We are actively building more tools like CodeBits, ColorBits, and FontBits. Stay tuned to our repo!</p>
+          </div>
+        </li>
+      </ul>
     </section>
   </main>
 
   <footer>
-    <p>Made with <span class="heart">♥</span> by <a href="https://x.com/dainbrain" target="_blank" rel="noopener noreferrer">@dainbrain</a></p>
+    <p>Made with <span class="heart">❤</span> by <a href="https://x.com/dainbrain" target="_blank" rel="noopener noreferrer">@dainbrain</a></p>
+    <p style="margin-top: var(--spacing-sm);">
+      <a href="https://github.com/oddbits-us/oddbits" target="_blank" rel="noopener noreferrer">🌟 Star us on GitHub</a>
+    </p>
   </footer>
 
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
-

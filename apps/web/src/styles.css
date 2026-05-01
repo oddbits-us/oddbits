@@ -6,6 +6,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'SerenityOS-Emoji';
+  src: url('/fonts/SerenityOS-Emoji.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -13,60 +21,116 @@
 }
 
 :root {
-  /* Retro dark purple/blue palette */
-  --color-bg: #300456;
-  --color-bg-secondary: #1a0233;
-  --color-surface: #4a0a7a;
-  --color-border: #6b1fa3;
+  /* Cyberpunk/Flashback neon palette */
+  --color-bg: #0d0221;
+  --color-bg-secondary: #110b29;
+  --color-surface: #1e133e;
+  --color-border: #3b2866;
   --color-text: #ffffff;
-  --color-text-secondary: #b8a0d0;
-  --color-primary: #c5ff00;
-  --color-primary-hover: #a8e000;
-  --color-accent: #00ffc5;
+  --color-text-secondary: #a69bb8;
+  --color-primary: #ffe600; /* Cyber Yellow */
+  --color-primary-hover: #ffcc00;
+  --color-accent: #00f0ff; /* Cyan */
   --color-success: #00ff88;
-  --color-error: #ff3366;
+  --color-error: #ff0055; /* Hot Pink */
+  
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
-  --radius: 4px;
-  --shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 20px rgba(197, 255, 0, 0.3);
+  --radius: 0px; /* Chunky pixel borders mean no border radius */
+  
+  /* Chunky pixelated 3D borders */
+  --shadow: inset -4px -4px 0px rgba(0,0,0,0.6), inset 4px 4px 0px rgba(255,255,255,0.15);
+  --shadow-glow: 0 0 15px var(--color-primary), inset -4px -4px 0px rgba(0,0,0,0.6), inset 4px 4px 0px rgba(255,255,255,0.25);
+  --shadow-press: inset 4px 4px 0px rgba(0,0,0,0.6), inset -2px -2px 0px rgba(255,255,255,0.1);
+  --text-glow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
 }
 
 body {
+  /* Using standard system fonts, with SerenityOS as the emoji fallback */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+    sans-serif, 'SerenityOS-Emoji';
   line-height: 1.6;
   color: var(--color-text);
   background: var(--color-bg);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* CRT Scanline Overlay */
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 9999;
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+}
+
+/* Background Gradients/Grid */
+.bg-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+.bg-layer.distant {
+  background: linear-gradient(180deg, #0d0221 0%, #200445 50%, #ff0055 100%);
+  opacity: 0.3;
+}
+
+.bg-layer.grid {
+  background-image: 
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center bottom;
+  transform: perspective(500px) rotateX(60deg) scale(2);
+  transform-origin: center bottom;
+  opacity: 0.2;
 }
 
 header {
   background: var(--color-bg-secondary);
-  border-bottom: 3px solid var(--color-primary);
+  border-bottom: 4px solid var(--color-primary);
   padding: var(--spacing-xl);
   text-align: center;
-  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.8);
 }
 
 header h1 {
   font-family: 'SuperPixel', monospace;
-  font-size: 3rem;
+  font-size: 3.5rem;
   margin-bottom: var(--spacing-sm);
   color: var(--color-primary);
-  text-shadow: 0 0 10px rgba(197, 255, 0, 0.5);
+  text-shadow: var(--text-glow), 4px 4px 0px rgba(0,0,0,0.8);
   letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 header p {
   color: var(--color-text-secondary);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.hero-copy {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-lg) 0;
 }
 
 main {
@@ -75,6 +139,8 @@ main {
   margin: 0 auto;
   padding: var(--spacing-xl);
   flex: 1;
+  position: relative;
+  z-index: 10;
 }
 
 section {
@@ -85,9 +151,38 @@ section h2 {
   font-family: 'SuperPixel', monospace;
   font-size: 2rem;
   margin-bottom: var(--spacing-lg);
-  color: var(--color-primary);
-  text-shadow: 0 0 8px rgba(197, 255, 0, 0.4);
+  color: var(--color-accent);
+  text-shadow: 0 0 10px var(--color-accent), 3px 3px 0px rgba(0,0,0,0.8);
   letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Documentation Stubs */
+.docs-section {
+  background: var(--color-surface);
+  border: 4px solid var(--color-border);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow);
+}
+
+.docs-section h3 {
+  font-family: 'SuperPixel', monospace;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+  font-size: 1.5rem;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
+}
+
+.docs-section pre {
+  background: #000;
+  color: var(--color-success);
+  padding: var(--spacing-md);
+  border: 4px solid var(--color-border);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  overflow-x: auto;
+  margin-bottom: var(--spacing-md);
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
 }
 
 /* Tools List */
@@ -104,9 +199,10 @@ section h2 {
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
   background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 4px solid var(--color-border);
+  box-shadow: var(--shadow);
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .tool-item:hover {
@@ -116,9 +212,11 @@ section h2 {
 }
 
 .tool-icon {
-  font-size: 2.5rem;
+  font-size: 3rem;
   line-height: 1;
   flex-shrink: 0;
+  font-family: 'SerenityOS-Emoji'; /* Use authentic pixel emoji */
+  text-shadow: 3px 3px 0px rgba(0,0,0,0.8);
 }
 
 .tool-info {
@@ -131,6 +229,7 @@ section h2 {
   color: var(--color-primary);
   margin-bottom: var(--spacing-xs);
   letter-spacing: 1px;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
 }
 
 .tool-info p {
@@ -143,13 +242,14 @@ section h2 {
   color: var(--color-accent);
   text-decoration: none;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 700;
   transition: color 0.2s ease;
+  text-transform: uppercase;
 }
 
 .tool-link:hover {
   color: var(--color-primary);
-  text-shadow: 0 0 5px rgba(197, 255, 0, 0.5);
+  text-shadow: 0 0 5px var(--color-primary);
 }
 
 .tools-grid {
@@ -161,11 +261,13 @@ section h2 {
 /* Footer */
 footer {
   background: var(--color-bg-secondary);
-  border-top: 3px solid var(--color-primary);
+  border-top: 4px solid var(--color-primary);
   padding: var(--spacing-lg);
   text-align: center;
   margin-top: auto;
-  box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.8);
+  position: relative;
+  z-index: 10;
 }
 
 footer p {
@@ -176,37 +278,34 @@ footer p {
 footer a {
   color: var(--color-primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: bold;
   transition: all 0.2s ease;
 }
 
 footer a:hover {
   color: var(--color-accent);
-  text-shadow: 0 0 5px rgba(197, 255, 0, 0.5);
+  text-shadow: 0 0 5px var(--color-accent);
 }
 
 footer .heart {
   color: var(--color-error);
+  font-family: 'SerenityOS-Emoji'; /* Authentic heart */
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* ImageBits Component Styles */
 odd-imagebits {
   display: block;
   background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 4px solid var(--color-border);
   padding: var(--spacing-lg);
   transition: all 0.2s ease;
+  box-shadow: var(--shadow);
 }
 
 odd-imagebits:hover {
@@ -225,8 +324,9 @@ odd-imagebits .tool-title {
   font-family: 'SuperPixel', monospace;
   font-size: 1.5rem;
   color: var(--color-primary);
-  text-shadow: 0 0 8px rgba(197, 255, 0, 0.4);
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
   letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 odd-imagebits .tool-description {
@@ -236,21 +336,21 @@ odd-imagebits .tool-description {
 }
 
 odd-imagebits .drop-zone {
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius);
+  border: 4px dashed var(--color-border);
+  background: #000;
   padding: var(--spacing-xl);
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: var(--color-bg-secondary);
   margin-bottom: var(--spacing-md);
+  box-shadow: inset 0 0 10px rgba(0,240,255,0.1);
 }
 
 odd-imagebits .drop-zone:hover,
 odd-imagebits .drop-zone.dragover {
-  border-color: var(--color-primary);
-  background: rgba(197, 255, 0, 0.1);
-  box-shadow: var(--shadow-glow);
+  border-color: var(--color-accent);
+  background: rgba(0, 240, 255, 0.1);
+  box-shadow: inset 0 0 20px rgba(0,240,255,0.3);
 }
 
 odd-imagebits .drop-zone input[type="file"] {
@@ -259,7 +359,8 @@ odd-imagebits .drop-zone input[type="file"] {
 
 odd-imagebits .drop-zone-text {
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  font-family: 'Monaco', 'Menlo', monospace;
+  text-transform: uppercase;
 }
 
 odd-imagebits .drop-zone-text strong {
@@ -281,20 +382,21 @@ odd-imagebits .control-group {
 odd-imagebits label {
   font-family: 'SuperPixel', monospace;
   font-size: 0.9rem;
-  color: var(--color-primary);
+  color: var(--color-accent);
   letter-spacing: 0.5px;
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
 }
 
 odd-imagebits input[type="number"],
 odd-imagebits input[type="range"],
 odd-imagebits select {
   padding: var(--spacing-sm);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 4px solid var(--color-border);
   font-size: 0.95rem;
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
-  font-family: inherit;
+  background: #000;
+  color: var(--color-success);
+  font-family: 'Monaco', 'Menlo', monospace;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8);
 }
 
 odd-imagebits small {
@@ -307,53 +409,60 @@ odd-imagebits small {
 odd-imagebits input[type="number"]:focus,
 odd-imagebits select:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 5px rgba(197, 255, 0, 0.3);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 10px rgba(0,240,255,0.5);
 }
 
 odd-imagebits input[type="range"] {
   width: 100%;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-error);
 }
 
 odd-imagebits .range-value {
   font-size: 0.85rem;
-  color: var(--color-accent);
+  color: var(--color-primary);
   text-align: right;
   display: inline-block;
-  min-width: 3ch; /* ensure space for two digits + % */
+  min-width: 3ch;
   margin-left: var(--spacing-sm);
-  /* Use body font for better numeric legibility (avoid pixel font here) */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Monaco', monospace;
 }
 
+/* 16-Bit Arcade Buttons */
 odd-imagebits button {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   background: var(--color-primary);
-  color: var(--color-bg);
-  border: 2px solid var(--color-primary);
-  border-radius: var(--radius);
-  font-size: 0.95rem;
-  font-weight: 600;
+  color: #000;
+  border: 4px solid #fff;
+  font-size: 1rem;
+  font-weight: 800;
   font-family: 'SuperPixel', monospace;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.1s ease;
   text-transform: uppercase;
+  box-shadow: var(--shadow);
 }
 
 odd-imagebits button:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+  border-color: #fff;
+  transform: translateY(-2px);
   box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
+}
+
+odd-imagebits button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-press);
 }
 
 odd-imagebits button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  box-shadow: none;
+  border-color: #000;
 }
 
 odd-imagebits .preview {
@@ -367,22 +476,23 @@ odd-imagebits .preview.active {
 
 odd-imagebits .preview-image {
   max-width: 100%;
-  border-radius: var(--radius);
-  border: 2px solid var(--color-border);
+  border: 4px solid var(--color-border);
   box-shadow: var(--shadow);
   margin-bottom: var(--spacing-sm);
+  image-rendering: pixelated; /* Retro aesthetic for images when applicable */
 }
 
 odd-imagebits .preview-info {
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--color-success);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
-  padding: var(--spacing-sm);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  background: #000;
+  border: 4px solid var(--color-border);
+  font-family: 'Monaco', 'Menlo', monospace;
 }
 
 odd-imagebits .preview-info strong {
@@ -390,17 +500,16 @@ odd-imagebits .preview-info strong {
 }
 
 odd-imagebits .logs {
-  background: #0a0015;
-  color: var(--color-accent);
+  background: #000;
+  color: var(--color-success);
   padding: var(--spacing-md);
-  border-radius: var(--radius);
+  border: 4px solid var(--color-border);
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.85rem;
   max-height: 200px;
   overflow-y: auto;
   margin-top: var(--spacing-md);
   display: none;
-  border: 1px solid var(--color-border);
 }
 
 odd-imagebits .logs.active {
@@ -417,7 +526,13 @@ odd-imagebits .loading {
   padding: var(--spacing-md);
   color: var(--color-primary);
   font-family: 'SuperPixel', monospace;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
 }
 
 odd-imagebits .loading.active {
@@ -427,11 +542,11 @@ odd-imagebits .loading.active {
 odd-imagebits .error {
   display: none;
   padding: var(--spacing-md);
-  background: rgba(255, 51, 102, 0.1);
-  border: 2px solid var(--color-error);
-  border-radius: var(--radius);
+  border: 4px solid var(--color-error);
   color: var(--color-error);
   margin-top: var(--spacing-md);
+  font-family: 'Monaco', monospace;
+  font-weight: bold;
 }
 
 odd-imagebits .error.active {
