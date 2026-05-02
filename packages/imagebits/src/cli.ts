@@ -10,7 +10,8 @@ import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-import type { ImageFormat } from './types';
+import { buildAltTextManifest, generateLocalAltTextFromPath, stringifyAltTextManifest } from './alt-text';
+import type { AltTextEntry, ImageFormat } from './types';
 
 function readPackageVersion(): string {
   const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +26,9 @@ type ParsedCli = {
   maxDimension?: number;
   format?: ImageFormat;
   quality: number;
+  altText: 'off' | 'local';
+  altJson?: string;
+  altModel?: string;
   quiet: boolean;
 };
 
@@ -42,6 +46,9 @@ Options:
   -m, --max-dimension <px>   Fit inside this width/height (maintains aspect ratio)
   -f, --format <fmt>        webp | avif | png | jpg | original (default: original)
   -q, --quality <0-1>       Lossy quality (default: 0.92)
+  --alt-text <mode>         off | local (default: off)
+  --alt-json <path>         Write local alt-text manifest JSON to this path
+  --alt-model <name>        Local caption model id (default: Xenova/vit-gpt2-image-captioning)
   -o, --output <path>       Output file path (optional; default is derived from input)
   --quiet                   Minimal output
   -h, --help                Show help
@@ -75,6 +82,9 @@ function parseArgs(argv: string[]): ParsedCli {
   let maxDimension: number | undefined;
   let format: ImageFormat | undefined;
   let quality = 0.92;
+  let altText: 'off' | 'local' = 'off';
+  let altJson: string | undefined;
+  let altModel: string | undefined;
   let quiet = false;
   let output: string | undefined;
 
@@ -118,6 +128,27 @@ function parseArgs(argv: string[]): ParsedCli {
       output = v;
       continue;
     }
+    if (a === '--alt-text') {
+      const v = argv[++i];
+      if (!v) throw new Error('Missing value for --alt-text');
+      if (v !== 'off' && v !== 'local') {
+        throw new Error(`Invalid alt-text mode "${v}". Use "off" or "local".`);
+      }
+      altText = v;
+      continue;
+    }
+    if (a === '--alt-json') {
+      const v = argv[++i];
+      if (!v) throw new Error('Missing value for --alt-json');
+      altJson = v;
+      continue;
+    }
+    if (a === '--alt-model') {
+      const v = argv[++i];
+      if (!v) throw new Error('Missing value for --alt-model');
+      altModel = v;
+      continue;
+    }
     if (a.startsWith('-')) {
       throw new Error(`Unknown option: ${a}`);
     }
@@ -141,6 +172,9 @@ function parseArgs(argv: string[]): ParsedCli {
     maxDimension,
     format,
     quality,
+    altText,
+    altJson,
+    altModel,
     quiet,
   };
 }
@@ -270,6 +304,31 @@ async function runCli(parsed: ParsedCli): Promise<void> {
   const st = fs.statSync(outPath);
   if (!parsed.quiet) {
     console.log(`Wrote ${outPath} (${st.size} bytes)`);
+  }
+
+  if (parsed.altText === 'local') {
+    const alt = await generateLocalAltTextFromPath(outPath, { model: parsed.altModel });
+    const outMeta = await sharp(outPath).metadata();
+    const entry: AltTextEntry = {
+      inputName: path.basename(inputPath),
+      outputName: path.basename(outPath),
+      width: outMeta.width ?? 0,
+      height: outMeta.height ?? 0,
+      altText: alt.altText,
+      warnings: alt.warnings.length > 0 ? alt.warnings : undefined,
+    };
+    const manifest = buildAltTextManifest([entry], alt.model);
+    const manifestPath = path.resolve(
+      parsed.altJson ?? path.join(path.dirname(outPath), 'alt-text.json')
+    );
+    const manifestDir = path.dirname(manifestPath);
+    if (!fs.existsSync(manifestDir)) {
+      fs.mkdirSync(manifestDir, { recursive: true });
+    }
+    fs.writeFileSync(manifestPath, stringifyAltTextManifest(manifest), 'utf8');
+    if (!parsed.quiet) {
+      console.log(`Wrote ${manifestPath}`);
+    }
   }
 }
 

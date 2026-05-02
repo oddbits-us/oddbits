@@ -24,6 +24,8 @@ pnpm dev
 - Avoid `innerHTML` with untrusted data
 - Validate file type/size before heavy processing
 - Keep third-party scripts minimal and reviewed
+- ImageBits alt text is local-only in this app; do not add API-key entry/storage flows
+- Keep CSP/header assumptions in sync with `render.yaml` when adding dependencies or new network calls
 
 ## Release behavior
 

@@ -15,4 +15,31 @@ projects:
             repo: https://github.com/oddbits-us/oddbits
             buildCommand: pnpm install --frozen-lockfile && pnpm build
             staticPublishPath: apps/web/dist
+            # Security baseline: local-only image alt-text, no BYOK/API key surfaces.
+            # Keep this header block in sync with SECURITY.md and any new runtime dependencies.
+            headers:
+              - path: /*
+                name: Content-Security-Policy
+                value: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://huggingface.co https://cdn-lfs.huggingface.co https://cdn.jsdelivr.net https://cas-bridge.xethub.hf.co https://cas-server.xethub.hf.co; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
+              - path: /*
+                name: Strict-Transport-Security
+                value: max-age=63072000; includeSubDomains; preload
+              - path: /*
+                name: X-Content-Type-Options
+                value: nosniff
+              - path: /*
+                name: X-Frame-Options
+                value: DENY
+              - path: /*
+                name: Referrer-Policy
+                value: no-referrer
+              - path: /*
+                name: Permissions-Policy
+                value: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+              - path: /*
+                name: Cross-Origin-Opener-Policy
+                value: same-origin
+              - path: /*
+                name: Cross-Origin-Resource-Policy
+                value: same-origin
             autoDeployTrigger: commit

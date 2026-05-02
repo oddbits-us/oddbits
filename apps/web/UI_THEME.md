@@ -122,6 +122,12 @@ Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** /
 - **Links**: `.tool-link` (cyan → pink hover) or inline anchors with `color: var(--color-accent)` for consistency.
 - **Primary actions** inside custom panels: match `.window-btn` / workshop buttons — light gray face, 2px highlight/shadow borders, pressed state inverts bevel (see `.imagebits-workshop-portal button`).
 
+## Security-sensitive UI conventions
+
+- Website tools in this repo should avoid API-key collection UX unless explicitly approved by security policy.
+- If a future credential field is unavoidable, default to masked input and never persist secrets in browser storage.
+- For local-only tools (like ImageBits alt text), include short copy clarifying that no keys are accepted.
+
 ## Modals / floating dialogs (inside a web component)
 
 ImageBits is the reference implementation:

@@ -15,6 +15,7 @@ From Node **18+**, you can run the **imagebits** command without installing glob
 ```bash
 npx @oddbits/imagebits --help
 npx @oddbits/imagebits photo.png -o photo.webp -f webp -m 1200 -q 0.9
+npx @oddbits/imagebits photo.png -f webp --alt-text local --alt-json ./alt-text.json
 ```
 
 | Option | Description |
@@ -22,6 +23,9 @@ npx @oddbits/imagebits photo.png -o photo.webp -f webp -m 1200 -q 0.9
 | `-m, --max-dimension <px>` | Fit inside this box (aspect preserved; only shrinks larger images) |
 | `-f, --format <fmt>` | `webp` \| `avif` \| `png` \| `jpg` \| `original` |
 | `-q, --quality <0-1>` | Default `0.92` |
+| `--alt-text <mode>` | `off` \| `local` (local captioning only) |
+| `--alt-json <path>` | Write `alt-text.json` manifest to a custom path |
+| `--alt-model <id>` | Optional local caption model override |
 | `-o, --output <path>` | Output file (optional; default is same folder + new extension) |
 
 After `npm install`, the binary is available as `imagebits` (or `pnpm exec imagebits`).
@@ -44,6 +48,11 @@ const dataUrl = await result.toDataURL();
 const buffer = await result.toArrayBuffer();
 // or download (browser only)
 result.download('optimized.webp');
+
+// local-only caption generation (no API keys / no BYOK)
+import { generateLocalAltTextFromBlob } from '@oddbits/imagebits';
+const alt = await generateLocalAltTextFromBlob(result.blob);
+console.log(alt.altText);
 ```
 
 ## API
@@ -80,6 +89,31 @@ processImage(
   download(filename?: string): void;  // Download (browser only)
 }
 ```
+
+### Local-Only Alt Text
+
+```typescript
+import {
+  buildAltTextManifest,
+  generateLocalAltTextFromBlob,
+} from '@oddbits/imagebits';
+
+const local = await generateLocalAltTextFromBlob(result.blob);
+const manifest = buildAltTextManifest(
+  [
+    {
+      inputName: file.name,
+      outputName: 'optimized.webp',
+      width: result.metadata.width,
+      height: result.metadata.height,
+      altText: local.altText,
+    },
+  ],
+  local.model
+);
+```
+
+This flow is local-only. `@oddbits/imagebits` does not require or store user API keys for alt text.
 
 ## Examples
 
@@ -149,7 +183,7 @@ const result = await processImage('https://example.com/image.jpg', {
 ## Browser vs Node
 
 - **Browser / bundlers**: import from `@oddbits/imagebits` or `@oddbits/imagebits/browser` — uses the Canvas API (`processImage`, drag-and-drop on the site, etc.).
-- **Node scripts & CI**: use the **`imagebits` CLI** above (`npx @oddbits/imagebits …`). The programmatic `processImage` API targets browsers (Blob, `File`, DOM); it is not meant for raw filesystem use in Node without a Canvas polyfill.
+- **Node scripts & CI**: use the **`imagebits` CLI** above (`npx @oddbits/imagebits …`) and add `--alt-text local` to emit `alt-text.json`.
 
 ## License
 

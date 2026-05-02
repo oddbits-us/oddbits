@@ -146,23 +146,10 @@ pnpm build
 npm publish
 ```
 
-## AI Integration (BYOK - Bring Your Own Key)
+## Local-Only AI Features
 
-Oddbits supports AI features through an agent-based architecture. Users provide their own API keys, which are stored locally and never sent to our servers.
-
-```typescript
-import { OpenAIAgent, AIKeyStorage } from '@oddbits/core';
-
-// Save API key (stored in localStorage)
-AIKeyStorage.save('openai', 'your-api-key-here');
-
-// Use the agent
-const agent = new OpenAIAgent(AIKeyStorage.load('openai')!);
-const result = await agent.execute({
-  type: 'generate-alt-text',
-  input: 'Describe this image: [image data]'
-});
-```
+For website tooling and ImageBits caption workflows, Oddbits uses local-only inference paths.
+No user API keys are collected, requested, stored, or relayed by the project for these flows.
 
 ## Architecture
 

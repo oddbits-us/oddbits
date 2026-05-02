@@ -31,21 +31,10 @@ const plugin = getBit('myplugin');
 const allPlugins = listBits();
 ```
 
-### AI Agent (BYOK)
+### Security posture
 
-```typescript
-import { OpenAIAgent, AnthropicAgent, AIKeyStorage } from '@oddbits/core';
-
-// Store API key locally
-AIKeyStorage.save('openai', 'your-api-key');
-
-// Use agent
-const agent = new OpenAIAgent(AIKeyStorage.load('openai')!);
-const result = await agent.execute({
-  type: 'task',
-  input: 'Your input here'
-});
-```
+`@oddbits/core` focuses on plugin registration/runtime utilities.
+User-facing web tooling in this repository is local-only and does not request or store user API keys.
 
 ## API Reference
 

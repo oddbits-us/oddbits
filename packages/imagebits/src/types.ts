@@ -62,3 +62,42 @@ export interface ImageMetadata extends Record<string, unknown> {
   size: number; // bytes
   originalSize?: number;
 }
+
+export type AltTextMode = 'off' | 'local';
+
+export interface LocalAltTextOptions {
+  /**
+   * Caption model identifier for local inference.
+   */
+  model?: string;
+  /**
+   * Hard cap for output length.
+   */
+  maxLength?: number;
+}
+
+export interface AltTextResult {
+  altText: string;
+  warnings: string[];
+  model: string;
+}
+
+export interface AltTextEntry {
+  inputName: string;
+  outputName: string;
+  width: number;
+  height: number;
+  altText: string;
+  warnings?: string[];
+}
+
+export interface AltTextManifest {
+  version: 1;
+  generatedAt: string;
+  generator: {
+    mode: 'local';
+    provider: 'transformersjs';
+    model: string;
+  };
+  images: AltTextEntry[];
+}

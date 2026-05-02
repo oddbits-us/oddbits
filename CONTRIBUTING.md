@@ -61,7 +61,15 @@ For an open-source repo with controlled quality/security, configure these in Git
 3. **Security**
    - Enable Dependabot alerts and secret scanning
    - Use private vulnerability reporting (`SECURITY.md`)
+   - Keep website security headers and CSP policy aligned with `render.yaml`
+   - Do not add user API-key collection/storage flows without explicit security policy approval
 
 4. **Deploy/release control**
    - Keep npm publishing guarded behind `PUBLISH_NPM=true`
    - Use preview deploys for `apps/web` changes before merge
+
+## Web security guardrails
+
+- ImageBits and website tooling are local-only for caption generation: no BYOK/API key collection.
+- Maintain strict CSP and header posture; treat any relaxation as a security change requiring review notes.
+- Do not introduce key persistence in browser storage for website features.

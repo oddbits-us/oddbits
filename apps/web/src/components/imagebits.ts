@@ -6,10 +6,16 @@
  * `.window` (fixed, z-index 400). See apps/web/UI_THEME.md.
  */
 
-import { processImage } from '@oddbits/imagebits';
+import { buildAltTextManifest, generateLocalAltTextFromBlob, processImage } from '@oddbits/imagebits';
 import { attachFixedWindowResize } from '../windowResize';
-import type { ImageBitsOptions } from '@oddbits/imagebits';
+import type { AltTextEntry, AltTextManifest, ImageBitsOptions } from '@oddbits/imagebits';
 import { zipSync } from 'fflate';
+
+type AltDraft = {
+  text: string;
+  status: 'idle' | 'generating' | 'ready' | 'error';
+  warning?: string;
+};
 
 export class ImageBitsElement extends HTMLElement {
   /** Stacking order above desktop `.window` instances (those use ~100+). */
@@ -28,6 +34,7 @@ export class ImageBitsElement extends HTMLElement {
   private previewImage: HTMLImageElement | null = null;
   private batchFileList: HTMLElement | null = null;
   private previewInfo: HTMLElement | null = null;
+  private generateAltAllBtn: HTMLButtonElement | null = null;
   private processButton: HTMLButtonElement | null = null;
   private downloadBtn: HTMLButtonElement | null = null;
   private logs: HTMLElement | null = null;
@@ -37,6 +44,11 @@ export class ImageBitsElement extends HTMLElement {
   private processedBlob: Blob | null = null;
   /** After batch process: maps zip-safe filenames to blobs. */
   private batchOutputs: { zipName: string; blob: Blob }[] | null = null;
+  private batchOutputMeta: Array<{ inputName: string; outputName: string; width: number; height: number }> =
+    [];
+  private altManifest: AltTextManifest | null = null;
+  private altDrafts: AltDraft[] = [];
+  private thumbnailUrls: string[] = [];
   private previewObjectUrl: string | null = null;
   private onEscapeBound = (e: KeyboardEvent) => this.onEscape(e);
   private onResizeBound = () => this.clampDialogToViewport();
@@ -117,6 +129,12 @@ export class ImageBitsElement extends HTMLElement {
                     </label>
                     <input type="range" id="quality" min="1" max="100" value="92">
                   </div>
+
+                  <div class="control-group imagebits-alt-control">
+                    <label>Alt Text</label>
+                    <small>Runs locally in your browser (slow). First run downloads model files from Hugging Face and caches them in your browser. Your images and other user data are never uploaded.</small>
+                    <button type="button" id="generate-alt-all-btn">Generate Alt Text (All)</button>
+                  </div>
                 </div>
 
                 <div class="imagebits-actions">
@@ -177,6 +195,7 @@ result.download('optimized.webp');</code></pre>
     this.teardownDialogDrag();
     this.teardownHelpDialogDrag();
     this.revokePreviewUrl();
+    this.revokeThumbnailUrls();
     if (this.workshop && document.body.contains(this.workshop)) {
       this.workshop.remove();
     }
@@ -218,6 +237,7 @@ result.download('optimized.webp');</code></pre>
     this.previewImage = this.querySelector('#preview-image') as HTMLImageElement;
     this.batchFileList = this.querySelector('#batch-file-list') as HTMLElement;
     this.previewInfo = this.querySelector('#preview-info') as HTMLElement;
+    this.generateAltAllBtn = this.querySelector('#generate-alt-all-btn') as HTMLButtonElement;
     this.processButton = this.querySelector('#process-btn') as HTMLButtonElement;
     this.downloadBtn = this.querySelector('#download-btn') as HTMLButtonElement;
     this.logs = this.querySelector('#logs') as HTMLElement;
@@ -287,11 +307,37 @@ result.download('optimized.webp');</code></pre>
 
     if (this.downloadBtn) {
       this.downloadBtn.addEventListener('click', () => {
-        if (this.currentFiles.length > 1) {
+        if (this.currentFiles.length > 1 || this.buildManifestFromCurrentDrafts()) {
           this.downloadZip();
         } else {
           this.downloadSingle();
         }
+      });
+    }
+
+    if (this.generateAltAllBtn) {
+      this.generateAltAllBtn.addEventListener('click', () => {
+        void this.generateAltTextForAll();
+      });
+    }
+
+    if (this.batchFileList) {
+      this.batchFileList.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const btn = target.closest<HTMLButtonElement>('.imagebits-batch-generate');
+        if (!btn) return;
+        const index = Number(btn.dataset.index ?? '-1');
+        if (Number.isNaN(index) || index < 0) return;
+        void this.generateAltTextForIndex(index);
+      });
+      this.batchFileList.addEventListener('input', (e) => {
+        const target = e.target as HTMLElement;
+        const editor = target.closest<HTMLElement>('.imagebits-batch-alt-editor');
+        if (!editor) return;
+        const index = Number(editor.dataset.index ?? '-1');
+        if (Number.isNaN(index) || index < 0 || !this.altDrafts[index]) return;
+        this.altDrafts[index].text = (editor.textContent ?? '').trim();
+        this.altDrafts[index].status = this.altDrafts[index].text ? 'ready' : 'idle';
       });
     }
 
@@ -366,34 +412,25 @@ result.download('optimized.webp');</code></pre>
     }
 
     this.currentFiles = images;
+    this.revokeThumbnailUrls();
+    this.thumbnailUrls = images.map((f) => URL.createObjectURL(f));
+    this.altDrafts = images.map(() => ({ text: '', status: 'idle' }));
     this.hideError();
     this.processedBlob = null;
     this.batchOutputs = null;
+    this.batchOutputMeta = [];
+    this.altManifest = null;
     if (this.downloadBtn) this.downloadBtn.hidden = true;
     this.clearLogs();
 
     this.revokePreviewUrl();
     this.updateWorkshopTitle();
 
-    if (images.length === 1) {
-      const file = images[0];
-      const url = URL.createObjectURL(file);
-      this.previewObjectUrl = url;
-      if (this.previewImage) {
-        this.previewImage.hidden = false;
-        this.previewImage.src = url;
-      }
-      if (this.batchFileList) {
-        this.batchFileList.hidden = true;
-        this.batchFileList.innerHTML = '';
-      }
-    } else {
-      if (this.previewImage) {
-        this.previewImage.hidden = true;
-        this.previewImage.removeAttribute('src');
-      }
-      this.renderBatchFileListPending();
+    if (this.previewImage) {
+      this.previewImage.hidden = true;
+      this.previewImage.removeAttribute('src');
     }
+    this.renderBatchFileListPending();
 
     if (this.previewInfo) {
       this.previewInfo.innerHTML = '';
@@ -421,10 +458,28 @@ result.download('optimized.webp');</code></pre>
     if (!this.batchFileList) return;
     this.batchFileList.hidden = false;
     this.batchFileList.innerHTML = this.currentFiles
-      .map(
-        (f, i) =>
-          `<li class="imagebits-batch-item" data-index="${i}"><span class="imagebits-batch-name">${this.escapeHtml(f.name)}</span><span class="imagebits-batch-status">Pending</span></li>`
-      )
+      .map((f, i) => {
+        const draft = this.altDrafts[i] ?? { text: '', status: 'idle' as const };
+        const statusText =
+          draft.status === 'generating'
+            ? 'Generating…'
+            : draft.status === 'error'
+              ? 'Alt error'
+              : draft.status === 'ready'
+                ? 'Ready'
+                : 'Pending';
+        return `<li class="imagebits-batch-item" data-index="${i}">
+          <img class="imagebits-batch-thumb" src="${this.thumbnailUrls[i] ?? ''}" alt="Thumbnail for ${this.escapeHtml(f.name)}">
+          <div class="imagebits-batch-main">
+            <span class="imagebits-batch-name">${this.escapeHtml(f.name)}</span>
+            <div class="imagebits-batch-alt-editor" data-index="${i}" contenteditable="true" role="textbox" aria-label="Alt text for ${this.escapeHtml(f.name)}">${this.escapeHtml(draft.text)}</div>
+          </div>
+          <div class="imagebits-batch-side">
+            <button type="button" class="imagebits-batch-generate" data-index="${i}" ${draft.status === 'generating' ? 'disabled' : ''}>Generate</button>
+            <span class="imagebits-batch-status ${draft.status === 'error' ? 'imagebits-batch-err' : draft.status === 'ready' ? 'imagebits-batch-ok' : ''}" title="${this.escapeHtml(draft.warning ?? '')}">${statusText}</span>
+          </div>
+        </li>`;
+      })
       .join('');
   }
 
@@ -444,6 +499,13 @@ result.download('optimized.webp');</code></pre>
       status.classList.toggle('imagebits-batch-ok', ok);
       status.classList.toggle('imagebits-batch-err', !ok);
     }
+  }
+
+  private setBatchRowAltText(index: number, text: string, isError = false) {
+    if (!this.altDrafts[index]) return;
+    this.altDrafts[index].text = text;
+    this.altDrafts[index].status = isError ? 'error' : text ? 'ready' : 'idle';
+    this.renderBatchFileListPending();
   }
 
   private clampDialogToViewport() {
@@ -638,6 +700,10 @@ result.download('optimized.webp');</code></pre>
     this.hideLoading();
     this.processedBlob = null;
     this.batchOutputs = null;
+    this.batchOutputMeta = [];
+    this.altManifest = null;
+    this.altDrafts = [];
+    this.revokeThumbnailUrls();
     this.currentFiles = [];
     if (this.fileInput) this.fileInput.value = '';
     this.hideIntroError();
@@ -730,6 +796,77 @@ result.download('optimized.webp');</code></pre>
     return options;
   }
 
+  private revokeThumbnailUrls() {
+    this.thumbnailUrls.forEach((url) => URL.revokeObjectURL(url));
+    this.thumbnailUrls = [];
+  }
+
+  private async generateAltTextForIndex(index: number) {
+    if (!this.currentFiles[index] || !this.altDrafts[index]) return;
+    this.altDrafts[index].status = 'generating';
+    this.renderBatchFileListPending();
+    try {
+      const out = await generateLocalAltTextFromBlob(this.currentFiles[index]);
+      this.altDrafts[index] = {
+        text: out.altText,
+        status: 'ready',
+        warning: out.warnings.join(' | ') || undefined,
+      };
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      const uiMessage = this.getAltTextErrorMessage(detail);
+      console.error('ImageBits local alt-text generation error:', err);
+      this.altDrafts[index] = {
+        text: this.altDrafts[index].text,
+        status: 'error',
+        warning: detail,
+      };
+      if (this.logs) {
+        this.logs.innerHTML = `<div class="log-entry">✗ Alt text failed for ${this.escapeHtml(this.currentFiles[index].name)}: ${this.escapeHtml(uiMessage)}</div>`;
+        this.logs.classList.add('active');
+      }
+    }
+    this.renderBatchFileListPending();
+  }
+
+  private getAltTextErrorMessage(detail: string): string {
+    if (detail.includes('Model fetch returned HTML')) {
+      return 'Model download returned an unexpected page. Check network/CSP settings.';
+    }
+    if (detail.includes("Can't create a session")) {
+      return 'Caption model failed to initialize in this browser runtime.';
+    }
+    return 'Local alt-text generation failed. Check console for details.';
+  }
+
+  private async generateAltTextForAll() {
+    if (this.currentFiles.length === 0) return;
+    for (let i = 0; i < this.currentFiles.length; i++) {
+      await this.generateAltTextForIndex(i);
+    }
+  }
+
+  private buildManifestFromCurrentDrafts(): AltTextManifest | null {
+    if (this.batchOutputMeta.length === 0) return null;
+    const entries: AltTextEntry[] = [];
+    for (let i = 0; i < this.batchOutputMeta.length; i++) {
+      const draft = this.altDrafts[i];
+      const text = (draft?.text ?? '').trim();
+      if (!text) continue;
+      const meta = this.batchOutputMeta[i];
+      entries.push({
+        inputName: meta.inputName,
+        outputName: meta.outputName,
+        width: meta.width,
+        height: meta.height,
+        altText: text,
+        warnings: draft.warning ? [draft.warning] : undefined,
+      });
+    }
+    if (entries.length === 0) return null;
+    return buildAltTextManifest(entries, 'manual-local');
+  }
+
   private outputFilename(file: File, formatSelect: HTMLSelectElement | null): string {
     const format = formatSelect?.value;
     const stem = file.name.replace(/\.[^/.]+$/, '');
@@ -762,6 +899,8 @@ result.download('optimized.webp');</code></pre>
     this.hideError();
     this.processedBlob = null;
     this.batchOutputs = null;
+    this.batchOutputMeta = [];
+    this.altManifest = null;
     if (this.downloadBtn) this.downloadBtn.hidden = true;
 
     const root = this.workshop;
@@ -776,6 +915,15 @@ result.download('optimized.webp');</code></pre>
         this.setLoadingMessage('Processing…');
         const result = await processImage(this.currentFiles[0], optionsBase);
         this.processedBlob = result.blob;
+        const outName = this.outputFilename(this.currentFiles[0], formatSelect);
+        this.batchOutputMeta = [
+          {
+            inputName: this.currentFiles[0].name,
+            outputName: outName,
+            width: result.metadata.width,
+            height: result.metadata.height,
+          },
+        ];
 
         if (this.previewImage && this.processedBlob) {
           this.revokePreviewUrl();
@@ -802,8 +950,6 @@ result.download('optimized.webp');</code></pre>
           <div><strong>Savings:</strong> ${savings}</div>
         `;
         }
-
-        const outName = this.outputFilename(this.currentFiles[0], formatSelect);
         this.batchOutputs = [{ zipName: outName, blob: this.processedBlob }];
 
         if (this.logs) {
@@ -819,6 +965,8 @@ result.download('optimized.webp');</code></pre>
         const rawNames = this.currentFiles.map((f) => this.outputFilename(f, formatSelect));
         const zipNames = this.uniquifyZipNames(rawNames);
         const outputs: { zipName: string; blob: Blob }[] = [];
+        const metaRows: Array<{ inputName: string; outputName: string; width: number; height: number }> =
+          [];
         let totalIn = 0;
         let totalOut = 0;
 
@@ -831,6 +979,12 @@ result.download('optimized.webp');</code></pre>
             totalOut += result.metadata.size;
             const rowSize = this.formatBytes(result.metadata.size);
             this.setBatchRowStatus(i, rowSize, true);
+            metaRows.push({
+              inputName: this.currentFiles[i].name,
+              outputName: zipNames[i],
+              width: result.metadata.width,
+              height: result.metadata.height,
+            });
           } catch {
             this.setBatchRowStatus(i, 'Failed', false);
             throw new Error(`Failed on “${this.currentFiles[i].name}”`);
@@ -838,6 +992,7 @@ result.download('optimized.webp');</code></pre>
         }
 
         this.batchOutputs = outputs;
+        this.batchOutputMeta = metaRows;
 
         if (this.previewInfo) {
           const saved =
@@ -895,6 +1050,10 @@ result.download('optimized.webp');</code></pre>
       for (const { zipName, blob } of this.batchOutputs!) {
         const ab = await blob.arrayBuffer();
         files[zipName] = new Uint8Array(ab);
+      }
+      this.altManifest = this.buildManifestFromCurrentDrafts();
+      if (this.altManifest) {
+        files['alt-text.json'] = new TextEncoder().encode(`${JSON.stringify(this.altManifest, null, 2)}\n`);
       }
       const zipped = zipSync(files, { level: 6 });
       const zipBlob = new Blob([new Uint8Array(zipped)], { type: 'application/zip' });

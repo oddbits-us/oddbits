@@ -8,6 +8,12 @@
 import type { BitPlugin, BitInput, BitOutput } from '@oddbits/core';
 import type { ImageBitsOptions, ImageBitsResult } from './types';
 import { processImage as processImageCore } from './process-core';
+export {
+  buildAltTextManifest,
+  generateLocalAltTextFromBlob,
+  generateLocalAltTextFromPath,
+  stringifyAltTextManifest,
+} from './alt-text';
 
 /**
  * Process an image with simple parameters
