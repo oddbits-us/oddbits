@@ -2,9 +2,24 @@
   "name": "@oddbits/imagebits",
   "version": "0.1.0",
   "description": "Image processing tools: resize, optimize, and convert formats",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oddbits-us/oddbits.git",
+    "directory": "packages/imagebits"
+  },
+  "homepage": "https://github.com/oddbits-us/oddbits/tree/main/packages/imagebits",
+  "bugs": {
+    "url": "https://github.com/oddbits-us/oddbits/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "imagebits": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -17,12 +32,19 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0 <23.0.0"
   },
   "keywords": [
     "oddbits",
@@ -35,7 +57,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@oddbits/core": "workspace:*"
+    "@oddbits/core": "workspace:*",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

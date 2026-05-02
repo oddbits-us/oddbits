@@ -1,90 +1,67 @@
-# Contributing to Oddbits
-
-Thank you for your interest in contributing to Oddbits! This document provides guidelines and instructions for contributing.
-
-## Getting Started
-
-1. Fork the repository
-2. Clone your fork: `git clone git@github.com:YOUR_USERNAME/oddbits.git`
-3. Install dependencies: `pnpm install`
-4. Create a new branch: `git checkout -b feature/your-feature-name`
-
-## Development
-
-### Building
-
-```bash
-pnpm build
-```
-
-### Running the Web App
-
-```bash
-cd apps/web
-pnpm dev
-```
-
-### Project Structure
-
-- `packages/core/` - Core plugin system
-- `packages/*/` - Individual bit packages
-- `apps/web/` - Web interface demo
-
-## Creating a New Bit
-
-1. Create a new package in `packages/your-bit-name/`
-2. Implement the `BitPlugin` interface from `@oddbits/core`
-3. Follow the naming convention: `*bits` (e.g., `colorbits`, `fontbits`)
-4. Add a README.md with usage examples
-5. Register your bit (optional, for auto-discovery)
-
-See the main README for detailed instructions on creating bits.
-
-## Code Style
-
-- Use TypeScript
-- Follow existing code patterns
-- Keep it simple and framework-light
-- Add comments for complex logic
-- Write clear, descriptive commit messages
-
-## Submitting Changes
-
-1. Make sure your code builds: `pnpm build`
-2. Test your changes thoroughly
-3. Update documentation if needed
-4. Commit your changes: `git commit -m "Description of changes"`
-5. Push to your fork: `git push origin feature/your-feature-name`
-6. Open a Pull Request on GitHub
-
-## Pull Request Guidelines
-
-- Provide a clear description of what the PR does
-- Reference any related issues
-- Ensure all checks pass
-- Keep PRs focused and reasonably sized
-
-## Reporting Bugs
-
-Use the bug report template when opening an issue. Include:
-- Clear description of the bug
-- Steps to reproduce
-- Expected vs actual behavior
-- Environment details
-
-## Feature Requests
-
-Use the feature request template or new bit proposal template. We welcome ideas for:
-- New bits/tools
-- Improvements to existing bits
-- Architecture enhancements
-- Documentation improvements
-
-## Questions?
-
-Feel free to open an issue for questions or discussions!
+# Contributing
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+This project is released under the **MIT License** (see the [`LICENSE`](./LICENSE) file in the repository root).
 
+## Commits and versioning
+
+Releases use [Release Please](https://github.com/googleapis/release-please) with [Conventional Commits](https://www.conventionalcommits.org/). Use clear prefixes so versions and changelogs stay accurate:
+
+| Prefix | Effect on semver (post–1.0) |
+|--------|------------------------------|
+| `fix:` | Patch |
+| `feat:` | Minor |
+| `feat!:`, `fix!:`, or `BREAKING CHANGE:` footer | Major |
+
+Examples:
+
+```
+feat(imagebits): add lossless PNG flag
+fix(core): correct plugin registration order
+```
+
+Scopes (`feat(core):`, `feat(imagebits):`, etc.) are optional but help map changes to packages.
+
+### Releases
+
+1. Push conventional commits to `main`.
+2. Release Please opens or updates a **release PR** with version bumps and `CHANGELOG.md` updates (including workspace dependency sync between `@oddbits/core` and `@oddbits/imagebits`).
+3. When you **merge** that PR, GitHub releases and tags are created automatically.
+
+**Publishing to npm** is optional until you turn it on:
+
+- GitHub → **Settings → Secrets and variables → Actions**
+  - Add **`NPM_TOKEN`** (npm automation access token with publish permission).
+  - Under **Variables**, add **`PUBLISH_NPM`** = `true` when you want CI to run `npm publish` after each merged release.
+
+Until `PUBLISH_NPM` is set to `true`, releases still happen on GitHub; packages are **not** pushed to npm.
+
+### First-time setup notes
+
+- Optional: add `"bootstrap-sha"` to `release-please-config.json` (full Git SHA) *once* to limit how far back the **first** changelog scans your history; remove it after the first successful release PR merge ([docs](https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md)).
+- To publish packages from CI, add an npm automation token as **`NPM_TOKEN`** under GitHub → Settings → Secrets and variables → Actions.
+
+Local commits are checked with [commitlint](https://commitlint.js.org/) via [Husky](https://typicode.github.io/husky/) (`commit-msg` hook). Install repo deps so hooks run: `pnpm install`.
+
+## Maintainer controls (recommended)
+
+For an open-source repo with controlled quality/security, configure these in GitHub settings:
+
+1. **Branch protection (`main`)**
+   - Require pull request before merge
+   - Require status checks to pass (CI, CodeQL)
+   - Require branches to be up to date before merge
+   - Restrict force pushes/deletions
+
+2. **Code owner review**
+   - Enable "Require review from Code Owners"
+   - Keep `.github/CODEOWNERS` updated with real users/teams
+
+3. **Security**
+   - Enable Dependabot alerts and secret scanning
+   - Use private vulnerability reporting (`SECURITY.md`)
+
+4. **Deploy/release control**
+   - Keep npm publishing guarded behind `PUBLISH_NPM=true`
+   - Use preview deploys for `apps/web` changes before merge

@@ -1,0 +1,12 @@
+# Default owners for all files
+* @dainbrain
+
+# Website and deployment-sensitive areas
+apps/web/** @dainbrain
+.github/workflows/** @dainbrain
+release-please-config.json @dainbrain
+.release-please-manifest.json @dainbrain
+
+# Publishable packages
+packages/core/** @dainbrain
+packages/imagebits/** @dainbrain

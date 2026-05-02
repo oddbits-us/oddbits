@@ -25,9 +25,21 @@ How has this been tested?
 - [ ] Documentation updated (if needed)
 - [ ] No new warnings generated
 - [ ] Tests pass locally
+- [ ] CI is passing
 
-## Screenshots (if applicable)
-Add screenshots to help explain your changes.
+## Website Changes (required if touching `apps/web/**`)
+- [ ] Not applicable (no website changes)
+- [ ] Preview deployment reviewed
+- [ ] Mobile/responsive behavior checked
+- [ ] No secrets exposed in client code
+- [ ] No untrusted HTML/JS execution added
+- [ ] Inputs/files validated before processing
+
+## Security Notes
+List any security impact, or write "none".
+
+## Screenshots / Preview
+Add screenshots or preview URL if UI changed.
 
 ## Related Issues
 Closes #(issue number)

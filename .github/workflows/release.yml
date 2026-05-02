@@ -2,26 +2,39 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
-  release:
-    name: Release
+  release-please:
+    name: Release Please & npm
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
     steps:
-      - name: Checkout code
+      - name: Run Release Please
+        id: release
+        uses: google-github-actions/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Checkout
+        if: ${{ steps.release.outputs.releases_created == 'true' }}
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        if: ${{ steps.release.outputs.releases_created == 'true' }}
+        uses: pnpm/action-setup@v4
         with:
           version: 8
 
       - name: Setup Node.js
+        if: ${{ steps.release.outputs.releases_created == 'true' }}
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -29,15 +42,27 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
+        if: ${{ steps.release.outputs.releases_created == 'true' }}
         run: pnpm install --frozen-lockfile
 
       - name: Build packages
+        if: ${{ steps.release.outputs.releases_created == 'true' }}
         run: pnpm build
 
+      # Set repository variable PUBLISH_NPM=true (Settings → Secrets and variables → Actions → Variables)
+      # and secret NPM_TOKEN before enabling automated npm publishes.
       - name: Publish to npm
-        run: |
-          cd packages/core && pnpm publish --access public --no-git-checks
-          cd ../imagebits && pnpm publish --access public --no-git-checks
+        if: ${{ steps.release.outputs.releases_created == 'true' && vars.PUBLISH_NPM == 'true' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+          PATHS_RELEASED: ${{ steps.release.outputs.paths_released }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN secret is required when PUBLISH_NPM is enabled."
+            exit 1
+          fi
+          echo "$PATHS_RELEASED" | jq -er '.[]' | sort | while IFS= read -r pkg_path; do
+            echo "Publishing ${pkg_path} ..."
+            (cd "$pkg_path" && npm publish --access public --no-git-checks)
+          done

@@ -2,6 +2,18 @@
   "name": "@oddbits/core",
   "version": "0.1.0",
   "description": "Core plugin system and utilities for oddbits ecosystem",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oddbits-us/oddbits.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/oddbits-us/oddbits/tree/main/packages/core",
+  "bugs": {
+    "url": "https://github.com/oddbits-us/oddbits/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -17,12 +29,19 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0 <23.0.0"
   },
   "keywords": [
     "oddbits",

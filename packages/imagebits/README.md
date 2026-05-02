@@ -8,6 +8,24 @@ Simple, flexible image processing: resize, optimize, and convert formats. Perfec
 npm install @oddbits/imagebits
 ```
 
+## CLI (`npx`)
+
+From Node **18+**, you can run the **imagebits** command without installing globally. The CLI uses [sharp](https://sharp.pixelplumbing.com/) under the hood (resize / encode match the library options; browser builds still use Canvas).
+
+```bash
+npx @oddbits/imagebits --help
+npx @oddbits/imagebits photo.png -o photo.webp -f webp -m 1200 -q 0.9
+```
+
+| Option | Description |
+|--------|-------------|
+| `-m, --max-dimension <px>` | Fit inside this box (aspect preserved; only shrinks larger images) |
+| `-f, --format <fmt>` | `webp` \| `avif` \| `png` \| `jpg` \| `original` |
+| `-q, --quality <0-1>` | Default `0.92` |
+| `-o, --output <path>` | Output file (optional; default is same folder + new extension) |
+
+After `npm install`, the binary is available as `imagebits` (or `pnpm exec imagebits`).
+
 ## Quick Start
 
 ```typescript
@@ -128,9 +146,10 @@ const result = await processImage('https://example.com/image.jpg', {
 - **Input**: PNG, JPEG, WebP, AVIF
 - **Output**: PNG, JPEG, WebP, AVIF
 
-## Browser Support
+## Browser vs Node
 
-Requires a modern browser with Canvas API support. For Node.js environments, consider using a headless browser or a Node.js-specific image processing library.
+- **Browser / bundlers**: import from `@oddbits/imagebits` or `@oddbits/imagebits/browser` — uses the Canvas API (`processImage`, drag-and-drop on the site, etc.).
+- **Node scripts & CI**: use the **`imagebits` CLI** above (`npx @oddbits/imagebits …`). The programmatic `processImage` API targets browsers (Blob, `File`, DOM); it is not meant for raw filesystem use in Node without a Canvas polyfill.
 
 ## License
 
