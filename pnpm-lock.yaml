@@ -12,8 +12,8 @@ importers:
         specifier: ^19.6.0
         version: 19.8.1(@types/node@25.6.0)(typescript@5.9.3)
       '@commitlint/config-conventional':
-        specifier: ^19.6.0
-        version: 19.8.1
+        specifier: ^20.5.3
+        version: 20.5.3
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -107,12 +107,12 @@ packages:
       - typescript
     dev: true
 
-  /@commitlint/config-conventional@19.8.1:
-    resolution: {integrity: sha512-/AZHJL6F6B/G959CsMAzrPKKZjeEiAVifRyEwXxcT6qtqbPwGw+iQxmNS+Bu+i09OCtdNRW6pNpBvgPrtMr9EQ==}
+  /@commitlint/config-conventional@20.5.3:
+    resolution: {integrity: sha512-j34Qqeaa152chJgz2ysyk0BCpHenJn1lV0Rx0VXf8k3ccQcED+48EZrzMvo9jLmJUyBrrBwvu89I+2er4gW7QQ==}
     engines: {node: '>=v18'}
     dependencies:
-      '@commitlint/types': 19.8.1
-      conventional-changelog-conventionalcommits: 7.0.2
+      '@commitlint/types': 20.5.0
+      conventional-changelog-conventionalcommits: 9.3.1
     dev: true
 
   /@commitlint/config-validator@19.8.1:
@@ -250,6 +250,14 @@ packages:
     dependencies:
       '@types/conventional-commits-parser': 5.0.2
       chalk: 5.6.2
+    dev: true
+
+  /@commitlint/types@20.5.0:
+    resolution: {integrity: sha512-ZJoS8oSq2CAZEpc/YI9SulLrdiIyXeHb/OGqGrkUP6Q7YV+0ouNAa7GjqRdXeQPncHQIDz/jbCTlHScvYvO/gA==}
+    engines: {node: '>=v18'}
+    dependencies:
+      conventional-commits-parser: 6.4.0
+      picocolors: 1.1.1
     dev: true
 
   /@emnapi/runtime@1.10.0:
@@ -1080,6 +1088,11 @@ packages:
     dev: true
     optional: true
 
+  /@simple-libs/stream-utils@1.2.0:
+    resolution: {integrity: sha512-KxXvfapcixpz6rVEB6HPjOUZT22yN6v0vI0urQSk1L8MlEWPDFCZkhw2xmkyoTGYeFw7tWTZd7e3lVzRZRN/EA==}
+    engines: {node: '>=18'}
+    dev: true
+
   /@types/animejs@3.1.13:
     resolution: {integrity: sha512-yWg9l1z7CAv/TKpty4/vupEh24jDGUZXv4r26StRkpUPQm04ztJaftgpto8vwdFs8SiTq6XfaPKCSI+wjzNMvQ==}
     dev: true
@@ -1244,9 +1257,9 @@ packages:
       compare-func: 2.0.0
     dev: true
 
-  /conventional-changelog-conventionalcommits@7.0.2:
-    resolution: {integrity: sha512-NKXYmMR/Hr1DevQegFB4MwfM5Vv0m4UIxKZTTYuD98lpTknaZlSRrDOG4X7wIXpGkfsYxZTghUN+Qq+T0YQI7w==}
-    engines: {node: '>=16'}
+  /conventional-changelog-conventionalcommits@9.3.1:
+    resolution: {integrity: sha512-dTYtpIacRpcZgrvBYvBfArMmK2xvIpv2TaxM0/ZI5CBtNUzvF2x0t15HsbRABWprS6UPmvj+PzHVjSx4qAVKyw==}
+    engines: {node: '>=18'}
     dependencies:
       compare-func: 2.0.0
     dev: true
@@ -1260,6 +1273,15 @@ packages:
       is-text-path: 2.0.0
       meow: 12.1.1
       split2: 4.2.0
+    dev: true
+
+  /conventional-commits-parser@6.4.0:
+    resolution: {integrity: sha512-tvRg7FIBNlyPzjdG8wWRlPHQJJHI7DylhtRGeU9Lq+JuoPh5BKpPRX83ZdLrvXuOSu5Eo/e7SzOQhU4Hd2Miuw==}
+    engines: {node: '>=18'}
+    hasBin: true
+    dependencies:
+      '@simple-libs/stream-utils': 1.2.0
+      meow: 13.2.0
     dev: true
 
   /cosmiconfig-typescript-loader@6.3.0(@types/node@25.6.0)(cosmiconfig@9.0.1)(typescript@5.9.3):
@@ -1626,6 +1648,11 @@ packages:
   /meow@12.1.1:
     resolution: {integrity: sha512-BhXM0Au22RwUneMPwSCnyhTOizdWoIEPU9sp0Aqa1PnDMR5Wv2FGXYDjuzJEIX+Eo2Rb8xuYe5jrnm5QowQFkw==}
     engines: {node: '>=16.10'}
+    dev: true
+
+  /meow@13.2.0:
+    resolution: {integrity: sha512-pxQJQzB6djGPXh08dacEloMFopsOqGVRKFPYvPOt9XDZ1HasbgDZA74CJGreSU4G3Ak7EFJGoiH2auq+yXISgA==}
+    engines: {node: '>=18'}
     dev: true
 
   /minimist@1.2.8:
