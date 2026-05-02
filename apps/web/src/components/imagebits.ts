@@ -21,59 +21,61 @@ export class ImageBitsElement extends HTMLElement {
 
   connectedCallback() {
     this.innerHTML = `
-      <div class="tool-header">
-        <div>
-          <div class="tool-title">🖼️ ImageBits</div>
-          <div class="tool-description">${imageBits.description}</div>
+      <div class="window-inner">
+        <div class="tool-header">
+          <div>
+            <div class="tool-title">🖼️ ImageBits</div>
+            <div class="tool-description">${imageBits.description}</div>
+          </div>
         </div>
+
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" accept="image/*" multiple>
+          <div class="drop-zone-text">
+            <strong>Drop images here</strong> or click to browse
+          </div>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+          <div class="control-group">
+            <label>Max Dimension (px)</label>
+            <input type="number" id="max-dimension" placeholder="e.g. 800" min="1">
+            <small>Maximum width or height in pixels</small>
+          </div>
+
+          <div class="control-group">
+            <label>Format</label>
+            <select id="format">
+              <option value="original">Original</option>
+              <option value="webp">WebP</option>
+              <option value="avif">AVIF</option>
+              <option value="png">PNG</option>
+              <option value="jpg">JPEG</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>
+              Quality
+              <span class="range-value" id="quality-value">92%</span>
+            </label>
+            <input type="range" id="quality" min="1" max="100" value="92">
+          </div>
+
+          <button id="process-btn">Process Image</button>
+        </div>
+
+        <div class="loading" id="loading">Processing...</div>
+        <div class="error" id="error"></div>
+
+        <div class="preview" id="preview">
+          <img class="preview-image" id="preview-image" alt="Preview">
+          <div class="preview-info" id="preview-info"></div>
+          <button id="download-btn">Download</button>
+        </div>
+
+        <div class="logs" id="logs"></div>
       </div>
-
-      <div class="drop-zone" id="drop-zone">
-        <input type="file" id="file-input" accept="image/*" multiple>
-        <div class="drop-zone-text">
-          <strong>Drop images here</strong> or click to browse
-        </div>
-      </div>
-
-      <div class="controls" id="controls" style="display: none;">
-        <div class="control-group">
-          <label>Max Dimension (px)</label>
-          <input type="number" id="max-dimension" placeholder="e.g. 800" min="1">
-          <small>Maximum width or height in pixels</small>
-        </div>
-
-        <div class="control-group">
-          <label>Format</label>
-          <select id="format">
-            <option value="original">Original</option>
-            <option value="webp">WebP</option>
-            <option value="avif">AVIF</option>
-            <option value="png">PNG</option>
-            <option value="jpg">JPEG</option>
-          </select>
-        </div>
-
-        <div class="control-group">
-          <label>
-            Quality
-            <span class="range-value" id="quality-value">92%</span>
-          </label>
-          <input type="range" id="quality" min="1" max="100" value="92">
-        </div>
-
-        <button id="process-btn">Process Image</button>
-      </div>
-
-      <div class="loading" id="loading">Processing...</div>
-      <div class="error" id="error"></div>
-
-      <div class="preview" id="preview">
-        <img class="preview-image" id="preview-image" alt="Preview">
-        <div class="preview-info" id="preview-info"></div>
-        <button id="download-btn">Download</button>
-      </div>
-
-      <div class="logs" id="logs"></div>
     `;
 
     this.initializeElements();

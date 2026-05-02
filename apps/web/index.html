@@ -9,48 +9,131 @@
 <body>
   <!-- Parallax Background Layers -->
   <div class="bg-layer distant"></div>
+  <div class="bg-layer stars"></div>
+  <div class="bg-layer sun"></div>
   <div class="bg-layer grid"></div>
+  <div class="bg-layer cityscape"></div>
+  <div class="bg-layer scanlines"></div>
+  
+  <div class="clouds">
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="cloud cloud-4"></div>
+    <div class="cloud cloud-5"></div>
+    <div class="cloud cloud-6"></div>
+  </div>
 
-  <header class="anime-header">
-    <h1>Oddbits</h1>
-    <p>A growing collection of rad developer tools and utilities</p>
-    <div class="hero-copy">
-      <p>Oddbits is an open-source project dedicated to bringing back the fun and flavor of classic 16-bit software into modern, powerful web utilities. Whether you need to process images, generate code, or tweak assets, we've got the tools for your cyberpunk toolbelt.</p>
+  <div class="sky-story" aria-hidden="true">
+    <span class="sky-emoji sky-ship">🛸</span>
+    <span class="sky-emoji sky-plane">✈</span>
+    <span class="sky-emoji sky-starfall-1">✦</span>
+    <span class="sky-emoji sky-starfall-2">✧</span>
+    <span class="sky-emoji sky-starfall-3">✦</span>
+  </div>
+
+  <div class="ground-story" aria-hidden="true">
+    <span class="road-emoji car-lane-near">🚗</span>
+    <span class="road-emoji car-lane-mid">🚕</span>
+    <span class="road-emoji car-lane-far">🚙</span>
+    <span class="road-emoji person-walk-1">🚶</span>
+    <span class="road-emoji person-walk-2">🚶‍♀️</span>
+    <span class="road-emoji person-walk-3">🧍</span>
+  </div>
+
+  <div id="desktop" class="desktop">
+    <!-- Desktop Icons -->
+    <div class="desktop-icons">
+      <div class="desktop-icon" data-target="window-oddbits">
+        <div class="desktop-icon-img">💾</div>
+        <div class="desktop-icon-label">Oddbits</div>
+      </div>
+      <div class="desktop-icon" data-target="window-imagebits">
+        <div class="desktop-icon-img">🖼️</div>
+        <div class="desktop-icon-label">ImageBits</div>
+      </div>
+      <div class="desktop-icon" data-target="window-docs">
+        <div class="desktop-icon-img">📝</div>
+        <div class="desktop-icon-label">readme.txt</div>
+      </div>
+      <div class="desktop-icon" data-target="window-comingsoon">
+        <div class="desktop-icon-img">🔮</div>
+        <div class="desktop-icon-label">Coming Soon</div>
+      </div>
+      <div class="desktop-icon" data-target="window-about">
+        <div class="desktop-icon-img">ℹ️</div>
+        <div class="desktop-icon-label">About</div>
+      </div>
     </div>
-  </header>
 
-  <main>
-    <section id="tools" class="anime-section">
-      <h2>Available Tools</h2>
-      <ul class="tools-list">
-        <li class="tool-item anime-item">
-          <div class="tool-icon">🖼️</div>
-          <div class="tool-info">
-            <h3>ImageBits</h3>
-            <p>Resize, optimize, and convert images to webp, avif, png, jpg</p>
-            <a href="https://github.com/oddbits-us/oddbits/tree/main/packages/imagebits" target="_blank" rel="noopener noreferrer" class="tool-link">
-              View Source →
-            </a>
-          </div>
-        </li>
-      </ul>
-      
-      <div class="tools-grid anime-item">
-        <odd-imagebits></odd-imagebits>
+    <!-- Header Window -->
+    <div id="window-oddbits" class="window draggable pop-magenta" style="top: 5%; left: 15%; transform: rotate(-2deg); max-width: 600px; z-index: 20;">
+      <div class="window-titlebar">
+        <span>Oddbits.exe</span>
+        <div class="window-controls">
+          <button class="window-btn">_</button>
+          <button class="window-btn">X</button>
+        </div>
       </div>
-    </section>
+      <div class="window-content anime-header">
+        <h1>Oddbits</h1>
+        <p>A growing collection of rad developer tools and utilities</p>
+        <div class="hero-copy">
+          <p>Oddbits is an open-source project dedicated to providing free, useful, and powerful web utilities. Whether you need to process images, generate code, or tweak assets, we've got the bits for you.</p>
+        </div>
+      </div>
+    </div>
 
-    <section id="documentation" class="anime-section">
-      <h2>How to Use in Your Project</h2>
-      <div class="docs-section anime-item">
-        <h3>Install via NPM</h3>
-        <pre><code>npm install @oddbits/imagebits</code></pre>
-        <p>Integrate our fast, optimized tools directly into your NodeJS or frontend builds.</p>
+    <!-- Tools Window -->
+    <div id="window-imagebits" class="window draggable pop-cyan" style="top: 20%; left: 40%; max-width: 800px; z-index: 15;">
+      <div class="window-titlebar">
+        <span>ImageBits_v1.0.exe</span>
+        <div class="window-controls">
+          <button class="window-btn">_</button>
+          <button class="window-btn">X</button>
+        </div>
       </div>
-      
-      <div class="docs-section anime-item">
-        <h3>Basic Usage</h3>
-        <pre><code>import { processImage } from '@oddbits/imagebits';
+      <div class="window-content anime-section">
+        <h2>Available Tools</h2>
+        <ul class="tools-list">
+          <li class="tool-item anime-item">
+            <div class="tool-icon">🖼️</div>
+            <div class="tool-info">
+              <h3>ImageBits</h3>
+              <p>Resize, optimize, and convert images to webp, avif, png, jpg</p>
+              <a href="https://github.com/oddbits-us/oddbits/tree/main/packages/imagebits" target="_blank" rel="noopener noreferrer" class="tool-link">
+                View Source →
+              </a>
+            </div>
+          </li>
+        </ul>
+        
+        <div class="tools-grid anime-item">
+          <odd-imagebits></odd-imagebits>
+        </div>
+      </div>
+    </div>
+
+    <!-- Docs Window -->
+    <div id="window-docs" class="window draggable" style="top: 50%; left: 20%; transform: rotate(1deg); max-width: 500px; z-index: 10;">
+      <div class="window-titlebar">
+        <span>readme.txt - Notepad</span>
+        <div class="window-controls">
+          <button class="window-btn">_</button>
+          <button class="window-btn">X</button>
+        </div>
+      </div>
+      <div class="window-content anime-section">
+        <h2>How to Use in Your Project</h2>
+        <div class="docs-section anime-item">
+          <h3>Install via NPM</h3>
+          <pre><code>npm install @oddbits/imagebits</code></pre>
+          <p>Integrate our fast, optimized tools directly into your NodeJS or frontend builds.</p>
+        </div>
+        
+        <div class="docs-section anime-item">
+          <h3>Basic Usage</h3>
+          <pre><code>import { processImage } from '@oddbits/imagebits';
 
 // Convert any image to WebP with max 800px width
 const result = await processImage(file, {
@@ -58,29 +141,50 @@ const result = await processImage(file, {
   maxDimension: 800,
   quality: 0.92
 });</code></pre>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <section id="coming-soon" class="anime-section">
-      <h2>Coming Soon</h2>
-      <ul class="tools-list">
-        <li class="tool-item anime-item" style="opacity: 0.7;">
-          <div class="tool-icon">🔮</div>
-          <div class="tool-info">
-            <h3>More Bits...</h3>
-            <p>We are actively building more tools like CodeBits, ColorBits, and FontBits. Stay tuned to our repo!</p>
-          </div>
-        </li>
-      </ul>
-    </section>
-  </main>
+    <!-- Coming Soon Window -->
+    <div id="window-comingsoon" class="window draggable pop-yellow" style="top: 70%; left: 60%; transform: rotate(-1deg); max-width: 400px; z-index: 5;">
+      <div class="window-titlebar">
+        <span>Coming_Soon.sys</span>
+        <div class="window-controls">
+          <button class="window-btn">_</button>
+          <button class="window-btn">X</button>
+        </div>
+      </div>
+      <div class="window-content anime-section">
+        <h2>Coming Soon</h2>
+        <ul class="tools-list">
+          <li class="tool-item anime-item" style="opacity: 0.7;">
+            <div class="tool-icon">🔮</div>
+            <div class="tool-info">
+              <h3>More Bits...</h3>
+              <p>We are actively building more tools like CodeBits, ColorBits, and FontBits. Stay tuned to our repo!</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
 
-  <footer>
-    <p>Made with <span class="heart">❤</span> by <a href="https://x.com/dainbrain" target="_blank" rel="noopener noreferrer">@dainbrain</a></p>
-    <p style="margin-top: var(--spacing-sm);">
-      <a href="https://github.com/oddbits-us/oddbits" target="_blank" rel="noopener noreferrer">🌟 Star us on GitHub</a>
-    </p>
-  </footer>
+    <!-- Footer Window -->
+    <div id="window-about" class="window draggable" style="bottom: 5%; right: 5%; width: 300px; z-index: 25;">
+      <div class="window-titlebar">
+        <span>About</span>
+        <div class="window-controls">
+          <button class="window-btn">_</button>
+          <button class="window-btn">X</button>
+        </div>
+      </div>
+      <div class="window-content" style="text-align: center;">
+        <p>Made with <span class="heart">❤</span> by <a href="https://x.com/dainbrain" target="_blank" rel="noopener noreferrer">@dainbrain</a></p>
+        <p style="margin-top: var(--spacing-sm);">
+          <a href="https://github.com/oddbits-us/oddbits" target="_blank" rel="noopener noreferrer">🌟 Star us on GitHub</a>
+        </p>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>
