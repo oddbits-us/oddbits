@@ -61,6 +61,29 @@ document.addEventListener('DOMContentLoaded', () => {
   let highestZIndex = 100;
   const windows = document.querySelectorAll('.window.draggable');
 
+  function clampWindowTranslate(el: HTMLElement, x: number, y: number): { x: number; y: number } {
+    const pad = 8;
+    const rotationMatch = el.style.transform.match(/rotate\([^)]+\)/);
+    const rotation = rotationMatch ? rotationMatch[0] : '';
+    let nx = x;
+    let ny = y;
+    for (let i = 0; i < 5; i++) {
+      el.style.transform = `translate3d(${nx}px, ${ny}px, 0) ${rotation}`;
+      const titlebar = el.querySelector<HTMLElement>('.window-titlebar');
+      const rect = titlebar?.getBoundingClientRect() ?? el.getBoundingClientRect();
+      let dx = 0;
+      let dy = 0;
+      if (rect.left < pad) dx += pad - rect.left;
+      if (rect.top < pad) dy += pad - rect.top;
+      if (rect.right > window.innerWidth - pad) dx -= rect.right - (window.innerWidth - pad);
+      if (rect.bottom > window.innerHeight - pad) dy -= rect.bottom - (window.innerHeight - pad);
+      if (dx === 0 && dy === 0) break;
+      nx += dx;
+      ny += dy;
+    }
+    return { x: nx, y: ny };
+  }
+
   windows.forEach((win) => {
     const windowEl = win as HTMLElement;
     const titlebar = windowEl.querySelector('.window-titlebar') as HTMLElement;
@@ -101,16 +124,19 @@ document.addEventListener('DOMContentLoaded', () => {
         currentX = e.clientX - initialX;
         currentY = e.clientY - initialY;
 
-        xOffset = currentX;
-        yOffset = currentY;
+        const clamped = clampWindowTranslate(windowEl, currentX, currentY);
+        xOffset = clamped.x;
+        yOffset = clamped.y;
 
-        setTranslate(currentX, currentY, windowEl);
+        setTranslate(xOffset, yOffset, windowEl);
       }
     }
 
     function dragEnd() {
-      initialX = currentX;
-      initialY = currentY;
+      const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
+      xOffset = clamped.x;
+      yOffset = clamped.y;
+      setTranslate(xOffset, yOffset, windowEl);
       isDragging = false;
     }
 
@@ -122,6 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
       
       el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) ${rotation}`;
     }
+
+    window.addEventListener('resize', () => {
+      const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
+      xOffset = clamped.x;
+      yOffset = clamped.y;
+      setTranslate(xOffset, yOffset, windowEl);
+    });
 
     // Close button functionality
     const closeBtn = titlebar.querySelector('.window-btn:last-child');
