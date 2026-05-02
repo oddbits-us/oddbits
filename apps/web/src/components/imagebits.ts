@@ -35,6 +35,7 @@ export class ImageBitsElement extends HTMLElement {
   private batchFileList: HTMLElement | null = null;
   private previewInfo: HTMLElement | null = null;
   private generateAltAllBtn: HTMLButtonElement | null = null;
+  private altModelInput: HTMLInputElement | null = null;
   private processButton: HTMLButtonElement | null = null;
   private downloadBtn: HTMLButtonElement | null = null;
   private logs: HTMLElement | null = null;
@@ -133,6 +134,13 @@ export class ImageBitsElement extends HTMLElement {
                   <div class="control-group imagebits-alt-control">
                     <label>Alt Text</label>
                     <small>Runs locally in your browser (slow). First run downloads model files from Hugging Face and caches them in your browser. Your images and other user data are never uploaded.</small>
+                    <input
+                      type="text"
+                      id="alt-model-input"
+                      placeholder="Optional model: Xenova/vit-gpt2-image-captioning or HF URL"
+                      spellcheck="false"
+                      autocomplete="off"
+                    >
                     <button type="button" id="generate-alt-all-btn">Generate Alt Text (All)</button>
                   </div>
                 </div>
@@ -238,6 +246,7 @@ result.download('optimized.webp');</code></pre>
     this.batchFileList = this.querySelector('#batch-file-list') as HTMLElement;
     this.previewInfo = this.querySelector('#preview-info') as HTMLElement;
     this.generateAltAllBtn = this.querySelector('#generate-alt-all-btn') as HTMLButtonElement;
+    this.altModelInput = this.querySelector('#alt-model-input') as HTMLInputElement;
     this.processButton = this.querySelector('#process-btn') as HTMLButtonElement;
     this.downloadBtn = this.querySelector('#download-btn') as HTMLButtonElement;
     this.logs = this.querySelector('#logs') as HTMLElement;
@@ -803,10 +812,12 @@ result.download('optimized.webp');</code></pre>
 
   private async generateAltTextForIndex(index: number) {
     if (!this.currentFiles[index] || !this.altDrafts[index]) return;
+    const modelChoice = this.resolveAltModelChoice();
+    if (modelChoice === null) return;
     this.altDrafts[index].status = 'generating';
     this.renderBatchFileListPending();
     try {
-      const out = await generateLocalAltTextFromBlob(this.currentFiles[index]);
+      const out = await generateLocalAltTextFromBlob(this.currentFiles[index], modelChoice.model ? { model: modelChoice.model } : {});
       this.altDrafts[index] = {
         text: out.altText,
         status: 'ready',
@@ -841,8 +852,78 @@ result.download('optimized.webp');</code></pre>
 
   private async generateAltTextForAll() {
     if (this.currentFiles.length === 0) return;
+    const modelChoice = this.resolveAltModelChoice();
+    if (modelChoice === null) return;
     for (let i = 0; i < this.currentFiles.length; i++) {
-      await this.generateAltTextForIndex(i);
+      await this.generateAltTextForIndexWithModel(i, modelChoice.model);
+    }
+  }
+
+  private async generateAltTextForIndexWithModel(index: number, model?: string) {
+    if (!this.currentFiles[index] || !this.altDrafts[index]) return;
+    this.altDrafts[index].status = 'generating';
+    this.renderBatchFileListPending();
+    try {
+      const out = await generateLocalAltTextFromBlob(this.currentFiles[index], model ? { model } : {});
+      this.altDrafts[index] = {
+        text: out.altText,
+        status: 'ready',
+        warning: out.warnings.join(' | ') || undefined,
+      };
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      const uiMessage = this.getAltTextErrorMessage(detail);
+      console.error('ImageBits local alt-text generation error:', err);
+      this.altDrafts[index] = {
+        text: this.altDrafts[index].text,
+        status: 'error',
+        warning: detail,
+      };
+      if (this.logs) {
+        this.logs.innerHTML = `<div class="log-entry">✗ Alt text failed for ${this.escapeHtml(this.currentFiles[index].name)}: ${this.escapeHtml(uiMessage)}</div>`;
+        this.logs.classList.add('active');
+      }
+    }
+    this.renderBatchFileListPending();
+  }
+
+  private resolveAltModelChoice(): { model?: string } | null {
+    const raw = (this.altModelInput?.value ?? '').trim();
+    if (!raw) return {};
+    const model = this.normalizeAltModelSpec(raw);
+    if (model) return { model };
+    if (this.logs) {
+      this.logs.innerHTML =
+        '<div class="log-entry">✗ Invalid alt model. Use "org/model" or a Hugging Face model URL.</div>';
+      this.logs.classList.add('active');
+    }
+    return null;
+  }
+
+  private normalizeAltModelSpec(value: string): string | null {
+    const repoIdPattern = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+    if (repoIdPattern.test(value)) return value;
+
+    if (!/^https?:\/\//i.test(value)) return null;
+    try {
+      const url = new URL(value);
+      if (!/^(.+\.)?huggingface\.co$/i.test(url.hostname)) return null;
+      const segments = url.pathname
+        .split('/')
+        .filter(Boolean)
+        .map((p) => decodeURIComponent(p));
+
+      if (segments.length >= 3 && segments[0] === 'models') {
+        const candidate = `${segments[1]}/${segments[2]}`;
+        return repoIdPattern.test(candidate) ? candidate : null;
+      }
+      if (segments.length >= 2) {
+        const candidate = `${segments[0]}/${segments[1]}`;
+        return repoIdPattern.test(candidate) ? candidate : null;
+      }
+      return null;
+    } catch {
+      return null;
     }
   }
 
