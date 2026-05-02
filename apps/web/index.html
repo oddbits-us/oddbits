@@ -78,9 +78,9 @@
       </div>
       <div class="window-content anime-header">
         <h1>Oddbits</h1>
-        <p>A growing collection of rad developer tools and utilities</p>
+        <p>An odd collection of useful web tools</p>
         <div class="hero-copy">
-          <p>Oddbits is an open-source project dedicated to providing free, useful, and powerful web utilities. Whether you need to process images, generate code, or tweak assets, we've got the bits for you.</p>
+          <p>Oddbits is open source and free. Our goal is to build useful tools you can run in the browser, use from the CLI, or plug into your own projects one bit at a time.</p>
         </div>
       </div>
     </div>
@@ -90,26 +90,25 @@
       <div class="window-titlebar">
         <span>ImageBits_v1.0.exe</span>
         <div class="window-controls">
+          <button class="window-btn imagebits-help-launch" type="button" title="ImageBits help" aria-label="Open ImageBits help">?</button>
           <button class="window-btn">_</button>
           <button class="window-btn">X</button>
         </div>
       </div>
       <div class="window-content anime-section">
-        <ul class="tools-list">
-          <li class="tool-item anime-item">
-            <div class="tool-icon">🖼️</div>
-            <div class="tool-info">
-              <h3>ImageBits</h3>
-              <p>Resize, optimize, and convert images to webp, avif, png, jpg</p>
-              <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/imagebits/README.md" target="_blank" rel="noopener noreferrer" class="tool-link">
-                View Source →
-              </a>
-            </div>
-          </li>
-        </ul>
-        
-        <div class="tools-grid anime-item">
+        <div class="bit-intro anime-item">
+          <h3>ImageBits</h3>
+          <p>Simple bulk convert to webp, avif, png, and jpg.</p>
+        </div>
+
+        <div class="bit-browser-section anime-item">
+          <h4>Use it in your browser</h4>
           <odd-imagebits></odd-imagebits>
+        </div>
+
+        <div class="bit-actions anime-item">
+          <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/imagebits/README.md" target="_blank" rel="noopener noreferrer" class="win-link-btn">Source</a>
+          <button type="button" class="win-link-btn imagebits-help-launch">How To</button>
         </div>
       </div>
     </div>
@@ -126,21 +125,16 @@
       <div class="window-content anime-section">
         <h2>How to Use in Your Project</h2>
         <div class="docs-section anime-item">
-          <h3>Install via NPM</h3>
-          <pre><code>npm install @oddbits/imagebits</code></pre>
-          <p>Integrate our fast, optimized tools directly into your NodeJS or frontend builds.</p>
+          <h3>Install</h3>
+          <pre><code>npm install @oddbits/&lt;bit-name&gt;</code></pre>
         </div>
         
         <div class="docs-section anime-item">
-          <h3>Basic Usage</h3>
-          <pre><code>import { processImage } from '@oddbits/imagebits';
-
-// Convert any image to WebP with max 800px width
-const result = await processImage(file, {
-  format: 'webp',
-  maxDimension: 800,
-  quality: 0.92
-});</code></pre>
+          <h3>Use</h3>
+          <pre><code>import { someUtility } from '@oddbits/&lt;bit-name&gt;';
+const result = await someUtility(input, options);</code></pre>
+          <pre><code>npx @oddbits/&lt;bit-name&gt; --help</code></pre>
+          <p>Use <strong>Source</strong> and <strong>How To</strong> in each bit window for exact options.</p>
         </div>
       </div>
     </div>
@@ -161,7 +155,7 @@ const result = await processImage(file, {
             <div class="tool-icon">🔮</div>
             <div class="tool-info">
               <h3>More Bits...</h3>
-              <p>We are actively building more tools. Stay tuned to our repo!</p>
+              <p>We are building more tools. Stay tuned to our repo!</p>
             </div>
           </li>
         </ul>
@@ -178,7 +172,7 @@ const result = await processImage(file, {
         </div>
       </div>
       <div class="window-content" style="text-align: center;">
-        <p>Made with <span class="heart">❤</span> by <a href="https://x.com/dainbrain" target="_blank" rel="noopener noreferrer">@dainbrain</a></p>
+        <p>Made with <span class="heart">❤</span> by <a href="https://github.com/dainbrain" target="_blank" rel="noopener noreferrer" class="win-link-btn win-link-btn-inline">@dainbrain</a></p>
       </div>
     </div>
   </div>

@@ -16,12 +16,15 @@ export class ImageBitsElement extends HTMLElement {
   private static dialogZ = 400;
 
   private titlebarMousedown: ((e: MouseEvent) => void) | undefined;
+  private helpTitlebarMousedown: ((e: MouseEvent) => void) | undefined;
 
   private fileInput: HTMLInputElement | null = null;
   private shell: HTMLElement | null = null;
   private dropZone: HTMLElement | null = null;
   private introError: HTMLElement | null = null;
   private workshop: HTMLElement | null = null;
+  private helpDialog: HTMLElement | null = null;
+  private helpLaunchers: HTMLElement[] = [];
   private previewImage: HTMLImageElement | null = null;
   private batchFileList: HTMLElement | null = null;
   private previewInfo: HTMLElement | null = null;
@@ -37,9 +40,16 @@ export class ImageBitsElement extends HTMLElement {
   private previewObjectUrl: string | null = null;
   private onEscapeBound = (e: KeyboardEvent) => this.onEscape(e);
   private onResizeBound = () => this.clampDialogToViewport();
+  private onHelpResizeBound = () => this.clampHelpToViewport();
   private raiseDialogZBound = () => this.raiseDialogZ();
+  private openHelpBound = () => this.openHelpDialog();
+  private onHelpLauncherMouseDownBound = (e: MouseEvent) => e.stopPropagation();
 
   private dialogDrag: {
+    move: (e: MouseEvent) => void;
+    up: () => void;
+  } | null = null;
+  private helpDialogDrag: {
     move: (e: MouseEvent) => void;
     up: () => void;
   } | null = null;
@@ -122,6 +132,35 @@ export class ImageBitsElement extends HTMLElement {
             </div>
           </div>
         </div>
+
+        <div
+          id="imagebits-help"
+          class="window imagebits-dialog-window imagebits-help-dialog"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="imagebits-help-title"
+          hidden
+        >
+          <div class="window-titlebar">
+            <span id="imagebits-help-title">ImageBits Help</span>
+            <div class="window-controls">
+              <button type="button" class="window-btn imagebits-help-close" aria-label="Close help">X</button>
+            </div>
+          </div>
+          <div class="window-content imagebits-help-content">
+            <h3>Basic Usage</h3>
+            <pre><code>import { processImage } from '@oddbits/imagebits';
+
+const result = await processImage(file, {
+  format: 'webp',
+  maxDimension: 800,
+  quality: 0.92
+});
+
+result.download('optimized.webp');</code></pre>
+            <p>Tips: drag and drop one or many images, tweak output options, then convert and download.</p>
+          </div>
+        </div>
       </div>
     `;
 
@@ -133,15 +172,25 @@ export class ImageBitsElement extends HTMLElement {
   disconnectedCallback() {
     document.removeEventListener('keydown', this.onEscapeBound);
     window.removeEventListener('resize', this.onResizeBound);
+    window.removeEventListener('resize', this.onHelpResizeBound);
+    this.detachHelpLauncher();
     this.teardownDialogDrag();
+    this.teardownHelpDialogDrag();
     this.revokePreviewUrl();
     if (this.workshop && document.body.contains(this.workshop)) {
       this.workshop.remove();
+    }
+    if (this.helpDialog && document.body.contains(this.helpDialog)) {
+      this.helpDialog.remove();
     }
   }
 
   private onEscape(e: KeyboardEvent) {
     if (e.key !== 'Escape') return;
+    if (this.helpDialog && !this.helpDialog.hidden) {
+      this.closeHelpDialog();
+      return;
+    }
     if (!this.workshop || this.workshop.hidden) return;
     this.closeWorkshop();
   }
@@ -165,6 +214,7 @@ export class ImageBitsElement extends HTMLElement {
     this.dropZone = this.querySelector('#drop-zone') as HTMLElement;
     this.introError = this.querySelector('#imagebits-intro-error') as HTMLElement;
     this.workshop = this.querySelector('#imagebits-workshop') as HTMLElement;
+    this.helpDialog = this.querySelector('#imagebits-help') as HTMLElement;
     this.previewImage = this.querySelector('#preview-image') as HTMLImageElement;
     this.batchFileList = this.querySelector('#batch-file-list') as HTMLElement;
     this.previewInfo = this.querySelector('#preview-info') as HTMLElement;
@@ -257,6 +307,36 @@ export class ImageBitsElement extends HTMLElement {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => this.closeWorkshop());
     }
+
+    const helpCloseBtn = this.querySelector('.imagebits-help-close');
+    if (helpCloseBtn) {
+      helpCloseBtn.addEventListener('click', () => this.closeHelpDialog());
+    }
+
+    this.attachHelpLauncher();
+  }
+
+  private attachHelpLauncher() {
+    this.detachHelpLauncher();
+    const hostWindow = this.closest('#window-imagebits');
+    const launchers = hostWindow
+      ? [...hostWindow.querySelectorAll<HTMLElement>('.imagebits-help-launch')]
+      : [];
+    if (launchers.length === 0) return;
+    launchers.forEach((launcher) => {
+      launcher.addEventListener('mousedown', this.onHelpLauncherMouseDownBound);
+      launcher.addEventListener('click', this.openHelpBound);
+    });
+    this.helpLaunchers = launchers;
+  }
+
+  private detachHelpLauncher() {
+    if (this.helpLaunchers.length === 0) return;
+    this.helpLaunchers.forEach((launcher) => {
+      launcher.removeEventListener('mousedown', this.onHelpLauncherMouseDownBound);
+      launcher.removeEventListener('click', this.openHelpBound);
+    });
+    this.helpLaunchers = [];
   }
 
   private hideIntroError() {
@@ -443,6 +523,64 @@ export class ImageBitsElement extends HTMLElement {
     }
   }
 
+  private setupHelpDialogDrag() {
+    this.teardownHelpDialogDrag();
+    const help = this.helpDialog;
+    const titlebar = help?.querySelector<HTMLElement>('.window-titlebar');
+    if (!help || !titlebar) return;
+
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let origLeft = 0;
+    let origTop = 0;
+
+    const onMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      help.style.left = `${origLeft + dx}px`;
+      help.style.top = `${origTop + dy}px`;
+      this.clampHelpToViewport();
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      this.helpDialogDrag = null;
+    };
+
+    const onDown = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest('.window-btn')) return;
+      if ((e.target as HTMLElement).closest('.window-resize-handle')) return;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      const rect = help.getBoundingClientRect();
+      origLeft = rect.left;
+      origTop = rect.top;
+      ImageBitsElement.dialogZ += 1;
+      help.style.zIndex = String(ImageBitsElement.dialogZ);
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      this.helpDialogDrag = { move: onMove, up: onUp };
+      e.preventDefault();
+    };
+
+    this.helpTitlebarMousedown = onDown;
+    titlebar.addEventListener('mousedown', onDown);
+  }
+
+  private teardownHelpDialogDrag() {
+    const titlebar = this.helpDialog?.querySelector<HTMLElement>('.window-titlebar');
+    if (titlebar && this.helpTitlebarMousedown) {
+      titlebar.removeEventListener('mousedown', this.helpTitlebarMousedown);
+    }
+    this.helpTitlebarMousedown = undefined;
+    if (this.helpDialogDrag) {
+      document.removeEventListener('mousemove', this.helpDialogDrag.move);
+      document.removeEventListener('mouseup', this.helpDialogDrag.up);
+      this.helpDialogDrag = null;
+    }
+  }
+
   private openWorkshop() {
     if (!this.workshop) return;
     /* Portal to body so position:fixed is viewport-relative; parent tool window uses transform. */
@@ -503,6 +641,67 @@ export class ImageBitsElement extends HTMLElement {
     this.currentFiles = [];
     if (this.fileInput) this.fileInput.value = '';
     this.hideIntroError();
+  }
+
+  private clampHelpToViewport() {
+    const el = this.helpDialog;
+    if (!el || el.hidden) return;
+    const pad = 8;
+    const rect = el.getBoundingClientRect();
+    let nextLeft = rect.left;
+    let nextTop = rect.top;
+    if (rect.left < pad) nextLeft = pad;
+    if (rect.top < pad) nextTop = pad;
+    if (rect.right > window.innerWidth - pad) {
+      nextLeft = Math.max(pad, window.innerWidth - pad - rect.width);
+    }
+    if (rect.bottom > window.innerHeight - pad) {
+      nextTop = Math.max(pad, window.innerHeight - pad - rect.height);
+    }
+    el.style.left = `${nextLeft}px`;
+    el.style.top = `${nextTop}px`;
+  }
+
+  private openHelpDialog() {
+    if (!this.helpDialog) return;
+    if (this.helpDialog.parentElement !== document.body) {
+      document.body.appendChild(this.helpDialog);
+    }
+    this.helpDialog.hidden = false;
+    this.helpDialog.style.position = 'fixed';
+    ImageBitsElement.dialogZ += 1;
+    this.helpDialog.style.zIndex = String(ImageBitsElement.dialogZ);
+    void this.helpDialog.offsetHeight;
+    const rect = this.helpDialog.getBoundingClientRect();
+    const left = Math.max(8, (window.innerWidth - rect.width) / 2);
+    const top = Math.max(8, (window.innerHeight - rect.height) / 2);
+    this.helpDialog.style.left = `${left}px`;
+    this.helpDialog.style.top = `${top}px`;
+    this.clampHelpToViewport();
+    this.setupHelpDialogDrag();
+    attachFixedWindowResize(this.helpDialog, {
+      clamp: () => this.clampHelpToViewport(),
+      minWidth: 360,
+      minHeight: 220,
+    });
+    this.helpDialog.addEventListener('mousedown', this.raiseDialogZBound);
+    window.addEventListener('resize', this.onHelpResizeBound);
+  }
+
+  private closeHelpDialog() {
+    if (!this.helpDialog) return;
+    window.removeEventListener('resize', this.onHelpResizeBound);
+    this.helpDialog.removeEventListener('mousedown', this.raiseDialogZBound);
+    this.teardownHelpDialogDrag();
+    this.helpDialog.hidden = true;
+    this.helpDialog.style.position = '';
+    this.helpDialog.style.left = '';
+    this.helpDialog.style.top = '';
+    this.helpDialog.style.zIndex = '';
+    const shell = this.querySelector('.imagebits-shell');
+    if (shell && this.helpDialog.parentElement === document.body) {
+      shell.appendChild(this.helpDialog);
+    }
   }
 
   private getOptionsFromWorkshop(): ImageBitsOptions {

@@ -65,6 +65,151 @@ document.addEventListener('DOMContentLoaded', () => {
   // Draggable Windows
   let highestZIndex = 100;
   const windows = document.querySelectorAll('.window.draggable');
+  const desktopIcons = document.querySelectorAll('.desktop-icon');
+
+  type WindowController = {
+    el: HTMLElement;
+    getOffset: () => { x: number; y: number };
+    setOffset: (x: number, y: number) => void;
+  };
+  const windowControllers: WindowController[] = [];
+
+  function positionWindowNearIcon(windowEl: HTMLElement) {
+    const icon = document.querySelector(`.desktop-icon[data-target="${windowEl.id}"]`) as HTMLElement | null;
+    if (!icon) return;
+
+    if (windowEl.style.bottom || windowEl.style.right) {
+      const anchoredRect = windowEl.getBoundingClientRect();
+      windowEl.style.top = `${Math.round(anchoredRect.top)}px`;
+      windowEl.style.left = `${Math.round(anchoredRect.left)}px`;
+      windowEl.style.bottom = '';
+      windowEl.style.right = '';
+      if (!windowEl.style.width) windowEl.style.width = `${Math.round(anchoredRect.width)}px`;
+      if (!windowEl.style.height) windowEl.style.height = `${Math.round(anchoredRect.height)}px`;
+    }
+
+    const iconRect = icon.getBoundingClientRect();
+    const windowRect = windowEl.getBoundingClientRect();
+    const pad = 10;
+    const nextLeft = iconRect.right + 18;
+    const nextTop = iconRect.top - 4;
+
+    const clampedLeft = Math.max(pad, Math.min(nextLeft, window.innerWidth - windowRect.width - pad));
+    const clampedTop = Math.max(pad, Math.min(nextTop, window.innerHeight - windowRect.height - pad));
+
+    windowEl.style.left = `${Math.round(clampedLeft)}px`;
+    windowEl.style.top = `${Math.round(clampedTop)}px`;
+  }
+
+  function spreadWindowsOnLoad(controllers: WindowController[]) {
+    if (controllers.length === 0) return;
+
+    const pad = 10;
+    const gap = 18;
+    const iconRight = [...desktopIcons].reduce((max, icon) => {
+      const r = (icon as HTMLElement).getBoundingClientRect();
+      return Math.max(max, r.right);
+    }, 0);
+    let leftBound = iconRight > 0 ? iconRight + gap : pad;
+    const rightBound = window.innerWidth - pad;
+    const topBound = pad;
+    const bottomBound = window.innerHeight - pad;
+    if (rightBound - leftBound < 260) leftBound = pad;
+
+    const visible = controllers.filter((c) => c.el.style.display !== 'none');
+    if (visible.length === 0) return;
+
+    const preferredOrder = [
+      'window-oddbits',
+      'window-docs',
+      'window-imagebits',
+      'window-comingsoon',
+      'window-about',
+    ];
+    const preferredRank = new Map(preferredOrder.map((id, idx) => [id, idx]));
+    const ordered = [...visible].sort((a, b) => {
+      const ar = preferredRank.get(a.el.id) ?? Number.MAX_SAFE_INTEGER;
+      const br = preferredRank.get(b.el.id) ?? Number.MAX_SAFE_INTEGER;
+      return ar - br;
+    });
+
+    const widthSpace = Math.max(240, rightBound - leftBound);
+    const heightSpace = Math.max(220, bottomBound - topBound);
+    const maxCols = widthSpace >= 620 ? 2 : 1;
+
+    type Placement = { controller: WindowController; left: number; top: number };
+    const targets: Placement[] = [];
+
+    const layoutColumn = (
+      columnItems: WindowController[],
+      x: number,
+      columnWidth: number
+    ) => {
+      if (columnItems.length === 0) return;
+      const heights = columnItems.map((c) => c.el.getBoundingClientRect().height);
+      const totalH = heights.reduce((sum, h) => sum + h, 0);
+      const freeY = Math.max(0, heightSpace - totalH);
+      const verticalGutter = freeY / (columnItems.length + 1);
+      const dynamicGap = columnItems.length > 1 ? verticalGutter : 0;
+      let y = topBound + verticalGutter;
+
+      columnItems.forEach((controller) => {
+        const rect = controller.el.getBoundingClientRect();
+        const maxY = bottomBound - rect.height;
+        const nextTop = Math.max(topBound, Math.min(y, maxY));
+        const centeredInColumn = x + Math.max(0, (columnWidth - rect.width) / 2);
+        const nextLeft = Math.max(leftBound, Math.min(centeredInColumn, rightBound - rect.width));
+        targets.push({ controller, left: nextLeft, top: nextTop });
+        y = nextTop + rect.height + dynamicGap;
+      });
+    };
+
+    if (maxCols === 1 || ordered.length <= 2) {
+      const singleWidth = Math.max(...ordered.map((c) => c.el.getBoundingClientRect().width));
+      const freeX = Math.max(0, widthSpace - singleWidth);
+      const x = leftBound + freeX / 2;
+      layoutColumn(ordered, x, singleWidth);
+    } else {
+      const leftItems = ordered.slice(0, 2);
+      const rightItems = ordered.slice(2);
+      const leftW = Math.max(...leftItems.map((c) => c.el.getBoundingClientRect().width));
+      const rightW = Math.max(...rightItems.map((c) => c.el.getBoundingClientRect().width));
+      const neededW = leftW + gap + rightW;
+
+      if (neededW > widthSpace) {
+        const singleWidth = Math.max(...ordered.map((c) => c.el.getBoundingClientRect().width));
+        const freeX = Math.max(0, widthSpace - singleWidth);
+        const x = leftBound + freeX / 2;
+        layoutColumn(ordered, x, singleWidth);
+      } else {
+        const freeX = widthSpace - leftW - rightW;
+        const gutter = freeX / 3;
+        const leftX = leftBound + gutter;
+        const rightX = leftX + leftW + gutter;
+        layoutColumn(leftItems, leftX, leftW);
+        layoutColumn(rightItems, rightX, rightW);
+      }
+    }
+
+    targets.forEach(({ controller, left, top }, i) => {
+      const rect = controller.el.getBoundingClientRect();
+      const current = controller.getOffset();
+      const targetX = current.x + (left - rect.left);
+      const targetY = current.y + (top - rect.top);
+
+      anime({
+        targets: current,
+        x: targetX,
+        y: targetY,
+        duration: 680,
+        delay: i * 24,
+        easing: 'easeOutQuint',
+        update: () => {
+          controller.setOffset(current.x, current.y);
+        }
+      });
+    });
+  }
 
   function clampWindowTranslate(el: HTMLElement, x: number, y: number): { x: number; y: number } {
     const pad = 8;
@@ -95,6 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (!titlebar) return;
 
+    positionWindowNearIcon(windowEl);
+
     let isDragging = false;
     let currentX = 0;
     let currentY = 0;
@@ -118,6 +265,17 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       afterResize: () => {
         const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
+        xOffset = clamped.x;
+        yOffset = clamped.y;
+        applyDragTransform(xOffset, yOffset);
+      },
+    });
+
+    windowControllers.push({
+      el: windowEl,
+      getOffset: () => ({ x: xOffset, y: yOffset }),
+      setOffset: (x, y) => {
+        const clamped = clampWindowTranslate(windowEl, x, y);
         xOffset = clamped.x;
         yOffset = clamped.y;
         applyDragTransform(xOffset, yOffset);
@@ -182,8 +340,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  spreadWindowsOnLoad(windowControllers);
+
   // Desktop Icons functionality
-  const desktopIcons = document.querySelectorAll('.desktop-icon');
   desktopIcons.forEach(icon => {
     icon.addEventListener('click', () => {
       const targetId = icon.getAttribute('data-target');
