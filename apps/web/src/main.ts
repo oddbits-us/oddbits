@@ -5,6 +5,11 @@
 import './styles.css'
 import './components/imagebits'
 import anime from 'animejs'
+import {
+  bakeTranslateIntoPercentAnchor,
+  extractRotation,
+  setDesktopAnchorFromViewportPx,
+} from './desktopWindowAnchor'
 import { attachTransformWindowResize } from './windowResize'
 
 // Vite injects this from the root package.json at build time; see vite.config.ts.
@@ -88,10 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (windowEl.style.bottom || windowEl.style.right) {
       const anchoredRect = windowEl.getBoundingClientRect();
-      windowEl.style.top = `${Math.round(anchoredRect.top)}px`;
-      windowEl.style.left = `${Math.round(anchoredRect.left)}px`;
-      windowEl.style.bottom = '';
-      windowEl.style.right = '';
+      setDesktopAnchorFromViewportPx(
+        Math.round(anchoredRect.left),
+        Math.round(anchoredRect.top),
+        windowEl
+      );
       if (!windowEl.style.width) windowEl.style.width = `${Math.round(anchoredRect.width)}px`;
       if (!windowEl.style.height) windowEl.style.height = `${Math.round(anchoredRect.height)}px`;
     }
@@ -105,8 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clampedLeft = Math.max(pad, Math.min(nextLeft, window.innerWidth - windowRect.width - pad));
     const clampedTop = Math.max(pad, Math.min(nextTop, window.innerHeight - windowRect.height - pad));
 
-    windowEl.style.left = `${Math.round(clampedLeft)}px`;
-    windowEl.style.top = `${Math.round(clampedTop)}px`;
+    setDesktopAnchorFromViewportPx(Math.round(clampedLeft), Math.round(clampedTop), windowEl);
   }
 
   function spreadWindowsOnLoad(controllers: WindowController[]) {
@@ -214,15 +219,18 @@ document.addEventListener('DOMContentLoaded', () => {
         easing: 'easeOutQuint',
         update: () => {
           controller.setOffset(current.x, current.y);
-        }
+        },
+        complete: () => {
+          bakeTranslateIntoPercentAnchor(controller.el);
+          controller.setOffset(0, 0);
+        },
       });
     });
   }
 
   function clampWindowTranslate(el: HTMLElement, x: number, y: number): { x: number; y: number } {
     const pad = 8;
-    const rotationMatch = el.style.transform.match(/rotate\([^)]+\)/);
-    const rotation = rotationMatch ? rotationMatch[0] : '';
+    const rotation = extractRotation(el.style.transform);
     let nx = x;
     let ny = y;
     for (let i = 0; i < 5; i++) {
@@ -259,8 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let yOffset = 0;
 
     function applyDragTransform(xPos: number, yPos: number) {
-      const rotationMatch = windowEl.style.transform.match(/rotate\([^)]+\)/);
-      const rotation = rotationMatch ? rotationMatch[0] : '';
+      const rotation = extractRotation(windowEl.style.transform);
       windowEl.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) ${rotation}`;
     }
 
@@ -275,6 +282,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
         xOffset = clamped.x;
         yOffset = clamped.y;
+        applyDragTransform(xOffset, yOffset);
+        bakeTranslateIntoPercentAnchor(windowEl);
+        const clamped2 = clampWindowTranslate(windowEl, 0, 0);
+        xOffset = clamped2.x;
+        yOffset = clamped2.y;
         applyDragTransform(xOffset, yOffset);
       },
     });
@@ -325,15 +337,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function dragEnd() {
+      if (!isDragging) return;
       const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
       xOffset = clamped.x;
       yOffset = clamped.y;
       applyDragTransform(xOffset, yOffset);
+      bakeTranslateIntoPercentAnchor(windowEl);
+      xOffset = 0;
+      yOffset = 0;
       isDragging = false;
     }
 
     window.addEventListener('resize', () => {
-      const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
+      bakeTranslateIntoPercentAnchor(windowEl);
+      const clamped = clampWindowTranslate(windowEl, 0, 0);
       xOffset = clamped.x;
       yOffset = clamped.y;
       applyDragTransform(xOffset, yOffset);

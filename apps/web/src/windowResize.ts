@@ -2,6 +2,8 @@
  * Invisible edge/corner hit targets for resizing `.window` frames without changing border visuals.
  */
 
+import { setDesktopAnchorFromViewportPx } from './desktopWindowAnchor';
+
 const HANDLE_WRAP_CLASS = 'window-resize-handles';
 const MIN_W_DEFAULT = 260;
 const MIN_H_DEFAULT = 120;
@@ -50,10 +52,7 @@ export function attachTransformWindowResize(win: HTMLElement, ctx: TransformResi
   const normalizeAnchoredPosition = () => {
     if (!win.style.bottom && !win.style.right) return;
     const r = win.getBoundingClientRect();
-    win.style.top = `${r.top}px`;
-    win.style.left = `${r.left}px`;
-    win.style.bottom = '';
-    win.style.right = '';
+    setDesktopAnchorFromViewportPx(Math.round(r.left), Math.round(r.top), win);
     win.style.width = `${r.width}px`;
     if (!win.style.height) {
       win.style.height = `${r.height}px`;

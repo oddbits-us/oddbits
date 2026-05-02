@@ -46,6 +46,7 @@ When adding a full-screen or fixed dialog, pick a z-index **above** the draggabl
 ## Window sizing & resize
 
 - **Desktop windows**: use `.window-size-default` for the initial max width; **`.window--hero`** on the main Oddbits intro narrows further and adds padding inside `.window-content`.
+- **Viewport-relative anchors**: draggable shells under `#desktop` keep **`left` / `top` as percentages of the desktop** (see `src/desktopWindowAnchor.ts`). While dragging, spreading on load, or resizing from W/N edges, layout uses **pixel `translate`** plus optional **`rotate`** from inline styles; when drag completes, after spread animation, on viewport **resize**, or after transform-resize, that offset is **baked** back into `%` anchors so reflowing the browser preserves relative positions.
 - **Resize**: invisible edge/corner hit targets (`src/windowResize.ts`) — **`attachTransformWindowResize`** for translate-based desktop windows (`main.ts`), **`attachFixedWindowResize`** for fixed dialogs (`imagebits.ts` workshop). Title bar stays above handles (`z-index`) so dragging still works.
 - After resizing in px, windows can grow beyond the initial max-width.
 
