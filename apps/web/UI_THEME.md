@@ -73,7 +73,7 @@ Every top-level window follows this shape:
 ```html
 <div id="window-…" class="window draggable [pop-cyan|pop-yellow|pop-magenta]" style="…position/size/z-index…">
   <div class="window-titlebar">
-    <span>Title.exe</span>
+    <span class="window-title-text"><span class="window-title-icon">🧩</span>Title.exe</span>
     <div class="window-controls">
       <button class="window-btn">_</button>
       <button class="window-btn">X</button>
@@ -86,9 +86,24 @@ Every top-level window follows this shape:
 ```
 
 - **`draggable`**: enables drag from `.window-titlebar` and clamp-to-viewport logic in `main.ts`.
+- **Title icon**: include a small `SerenityOS-Emoji` icon in `.window-title-text` that matches the desktop icon for quick recognition.
 - **`pop-cyan` | `pop-yellow` | `pop-magenta`**: subtle tinted window backgrounds (optional).
 - **Initial placement**: use `top`/`left`/`right`/`bottom` + optional `transform: rotate(…deg)` for personality; dragging uses `translate3d` and **preserves** `rotate()` in the inline transform.
 - **Close**: last `.window-btn` hides the window (`display: none`). Re-open via desktop icon (sets `display: flex`).
+
+## Bit window blueprint (default pattern)
+
+Use ImageBits as the baseline pattern for all new bits unless a bit has a strong reason to differ.
+
+1. **Header/titlebar**: app-like filename title + matching emoji icon + standard controls.
+2. **Intro block**: short 1-2 sentence description of what the bit does.
+3. **Browser section**: heading like "Use it in your browser" and the live interactive component.
+4. **Action row**: compact Windows-style buttons (1-2 word labels), usually:
+   - `Source` (GitHub docs/source)
+   - `How To` (opens bit-specific help dialog)
+5. **Help dialog**: draggable/resizable `.window` dialog with concise usage examples and tips.
+
+Keep this structure visually consistent across bits so users can instantly orient themselves.
 
 ## Content patterns inside `.window-content`
 

@@ -416,6 +416,20 @@ body {
   cursor: grabbing;
 }
 
+.window-title-text {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+
+.window-title-icon {
+  font-family: 'SerenityOS-Emoji';
+  font-size: 0.95rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .window-controls {
   display: flex;
   gap: 4px;
