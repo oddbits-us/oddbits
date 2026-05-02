@@ -58,6 +58,8 @@ export class ImageBitsElement extends BitElement {
   private activeAltAllButton: HTMLButtonElement | null = null;
   private currentAltMode: 'default' | 'custom' = 'default';
   private convertStopRequested = false;
+  /** After Download succeeds, close-workshop confirm is skipped until state changes again. */
+  private exportsDownloaded = false;
 
   // ====== BitElement: shell HTML ======
   protected renderShell(): string {
@@ -246,8 +248,9 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
 
   protected isWorkshopDirty(): boolean {
     if (!this.workshop || this.workshop.hidden) return false;
-    if (this.currentFiles.length > 0) return true;
     if (this.altAllGenerating) return true;
+    if (this.exportsDownloaded) return false;
+    if (this.currentFiles.length > 0) return true;
     if (this.batchOutputs && this.batchOutputs.length > 0) return true;
     return false;
   }
@@ -433,6 +436,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
         this.autoResizeAltEditor(editor);
         this.altDrafts[index].text = editor.value.trim();
         this.altDrafts[index].status = this.altDrafts[index].text ? 'ready' : 'idle';
+        this.exportsDownloaded = false;
       });
     }
   }
@@ -464,6 +468,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     }
 
     this.currentFiles = images;
+    this.exportsDownloaded = false;
     this.revokeThumbnailUrls();
     this.thumbnailUrls = images.map((f) => URL.createObjectURL(f));
     this.altDrafts = images.map(() => ({ text: '', status: 'idle' }));
@@ -573,6 +578,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
   // ====== BitElement: workshop reset ======
 
   protected resetWorkshopState(): void {
+    this.exportsDownloaded = false;
     this.altAllGenerating = false;
     this.activeAltAllButton = null;
     if (this.generateAltMainBtn) {
@@ -641,6 +647,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
 
   private async generateAltTextForIndex(index: number) {
     if (!this.currentFiles[index] || !this.altDrafts[index]) return;
+    this.exportsDownloaded = false;
     const modelChoice = this.resolveAltModelChoice();
     if (modelChoice === null) return;
     this.altDrafts[index].status = 'generating';
@@ -706,6 +713,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     }
     this.altAllGenerating = true;
     this.altAllStopRequested = false;
+    this.exportsDownloaded = false;
     this.activeAltAllButton = sourceButton;
     sourceButton.classList.add('is-active');
     sourceButton.textContent = 'Generating - click again to stop';
@@ -884,6 +892,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     if (this.currentFiles.length === 0) return;
 
     this.convertStopRequested = false;
+    this.exportsDownloaded = false;
     this.setProcessing(true);
     this.clearLogs();
     this.processedBlob = null;
@@ -1018,6 +1027,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    this.exportsDownloaded = true;
   }
 
   private downloadZip() {
@@ -1044,6 +1054,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      this.exportsDownloaded = true;
     })();
   }
 

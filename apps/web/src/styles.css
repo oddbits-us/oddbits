@@ -901,6 +901,46 @@ input[type="range"]::-moz-range-thumb {
   overflow: hidden;
 }
 
+/* Fixed OSS / shields.io strip — sits above desktop windows, below bit modals (z-index 400+) */
+.site-badge-strip {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+}
+
+.site-badge-strip__link {
+  display: inline-flex;
+  line-height: 0;
+  opacity: 0.88;
+  transition: opacity 0.15s ease;
+}
+
+.site-badge-strip__link:hover,
+.site-badge-strip__link:focus-visible {
+  opacity: 1;
+}
+
+.site-badge-strip__link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.site-badge-strip__link img {
+  display: block;
+  height: 20px;
+  width: auto;
+  vertical-align: middle;
+}
+
 /* Desktop Icons */
 .desktop-icons {
   position: absolute;
