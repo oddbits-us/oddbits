@@ -24,6 +24,18 @@ Describe specific use cases or scenarios where this bit would be useful.
 ## Technical Considerations
 Any technical notes, dependencies, or implementation considerations?
 
+## Architecture surfaces
+Bits follow the four-surface pattern documented in [`apps/web/UI_THEME.md`](../../apps/web/UI_THEME.md) (canonical example: `imagebits`).
+Tick which surfaces this bit will need:
+
+- [ ] Desktop icon + matching desktop window (always required)
+- [ ] Workshop dialog (modal `.window`, fixed/portaled, for the actual work)
+- [ ] Inline help popover (`.popover` + `.help-trigger`)
+- [ ] Alert/confirm modal (`.alert-modal-*`) — required if the workshop holds unsaved work
+- [ ] Combo button (`.combo-button-group`) for split actions
+
+If you're inventing new visual styling instead of reusing the design system, call it out and explain why.
+
 ## Examples
 If applicable, provide examples of how this bit would be used:
 

@@ -1,21 +1,81 @@
 # @oddbits/imagebits
 
-Simple, flexible image processing: resize, optimize, and convert formats. Perfect for integrating into CMS workflows, build processes, or any project that needs image optimization.
-
-## Installation
+Image processing for both Node and the browser: resize, optimize, convert formats, and (optionally) generate alt text — all behind one tiny API. The Node build is backed by [sharp](https://sharp.pixelplumbing.com/); the browser build uses the Canvas API. **Same exports either way** — bundlers auto-pick the right one via the `browser` field in `package.json`.
 
 ```bash
 npm install @oddbits/imagebits
+# or
+pnpm add @oddbits/imagebits
+```
+
+## Quick start (Node)
+
+```ts
+import fs from 'node:fs';
+import { processImage } from '@oddbits/imagebits';
+
+const result = await processImage('./photo.png', {
+  maxDimension: 1200,
+  format: 'webp',
+  quality: 0.9,
+});
+
+fs.writeFileSync('./photo.webp', Buffer.from(await result.toArrayBuffer()));
+console.log(result.metadata);
+// { width: 1200, height: 800, format: 'webp', size: 84231, originalSize: 412903 }
+```
+
+## Quick start (browser)
+
+```ts
+import { processImage } from '@oddbits/imagebits';
+
+const result = await processImage(file, {
+  maxDimension: 1080,
+  format: 'webp',
+  quality: 0.9,
+});
+
+const url = await result.toDataURL();
+result.download('photo.webp');
+```
+
+The two snippets call **the same `processImage` name with the same options**. The bundler (Vite, webpack, Rollup, esbuild, Parcel) sees the `browser` field in `package.json` and substitutes the canvas build automatically — no env-detect logic in your code, no sharp in the browser bundle.
+
+## Bulk
+
+```ts
+import { processImages } from '@oddbits/imagebits';
+
+const results = await processImages(['a.png', 'b.png', 'c.png'], {
+  maxDimension: 1080,
+  format: 'webp',
+  concurrency: 4, // sequential by default; bump for parallelism
+});
 ```
 
 ## CLI (`npx`)
 
-From Node **18+**, you can run the **imagebits** command without installing globally. The CLI uses [sharp](https://sharp.pixelplumbing.com/) under the hood (resize / encode match the library options; browser builds still use Canvas).
+The same `processImages` engine powers the CLI. Shell globs (`*.png`) work out of the box; pass a directory plus `-r` for recursive walks; combine with `--alt-text` for a manifest, and `--zip` to bundle the lot into one archive.
 
 ```bash
-npx @oddbits/imagebits --help
+# single image
 npx @oddbits/imagebits photo.png -o photo.webp -f webp -m 1200 -q 0.9
-npx @oddbits/imagebits photo.png -f webp --alt-text local --alt-json ./alt-text.json
+
+# bulk via shell glob, output to a directory
+npx @oddbits/imagebits *.png -f webp -o ./out/
+
+# walk a directory tree, preserving subfolder layout
+npx @oddbits/imagebits ./src/images -r -f webp -o ./dist/images/
+
+# bulk + local alt-text manifest
+npx @oddbits/imagebits ./photos -r --alt-text local --alt-json ./photos/alt-text.json
+
+# bulk + manifest, all packed into a single zip artifact
+npx @oddbits/imagebits ./photos -r -f webp --alt-text local --zip ./photos.zip
+
+# parallel, keep stdout quiet
+npx @oddbits/imagebits ./photos -r -f webp --concurrency 8 --quiet
 ```
 
 | Option | Description |
@@ -23,167 +83,169 @@ npx @oddbits/imagebits photo.png -f webp --alt-text local --alt-json ./alt-text.
 | `-m, --max-dimension <px>` | Fit inside this box (aspect preserved; only shrinks larger images) |
 | `-f, --format <fmt>` | `webp` \| `avif` \| `png` \| `jpg` \| `original` |
 | `-q, --quality <0-1>` | Default `0.92` |
-| `--alt-text <mode>` | `off` \| `local` (local captioning only) |
-| `--alt-json <path>` | Write `alt-text.json` manifest to a custom path |
-| `--alt-model <id>` | Optional local caption model override |
-| `-o, --output <path>` | Output file (optional; default is same folder + new extension) |
+| `-r, --recursive` | Recurse into subdirectories when an input is a directory |
+| `-o, --output <path>` | File (single input) or directory (multiple inputs); default writes next to source |
+| `--alt-text <mode>` | `off` \| `local` (local captioning, no API keys) |
+| `--alt-json <path>` | Combined manifest output path (default: `alt-text.json` next to first output) |
+| `--alt-model <id>` | Override the local caption model |
+| `--zip <path>` | Bundle outputs + manifest into a single `.zip` |
+| `--concurrency <n>` | Parallelism (default `1`) |
+| `--quiet` | Minimal output |
+| `-v, --version` | Print the package version |
 
-After `npm install`, the binary is available as `imagebits` (or `pnpm exec imagebits`).
-
-## Quick Start
-
-```typescript
-import { processImage } from '@oddbits/imagebits';
-
-// Process an image with simple parameters
-const result = await processImage(file, {
-  maxDimension: 800,  // Max width or height in pixels
-  format: 'webp',     // Output format
-  quality: 0.9        // Quality (0-1)
-});
-
-// Use the result
-const dataUrl = await result.toDataURL();
-// or
-const buffer = await result.toArrayBuffer();
-// or download (browser only)
-result.download('optimized.webp');
-
-// local-only caption generation (no API keys / no BYOK)
-import { generateLocalAltTextFromBlob } from '@oddbits/imagebits';
-const alt = await generateLocalAltTextFromBlob(result.blob);
-console.log(alt.altText);
-```
+After `npm install` the binary is also available as `imagebits` (or `pnpm exec imagebits`).
 
 ## API
 
-The `processImage` function is designed for easy integration into workflows, CMS systems, and build processes.
+### `processImage(input, options?)`
 
-### Parameters
-
-```typescript
+```ts
 processImage(
-  input: File | Blob | ArrayBuffer | string,  // Image input
+  input:
+    | string         // file path (Node) or URL (Node + browser)
+    | Buffer         // Node
+    | Uint8Array     // Node
+    | ArrayBuffer    // Node + browser
+    | Blob           // Node 18+ + browser
+    | File,          // browser
   options?: {
-    maxDimension?: number;    // Max width/height in pixels (maintains aspect ratio)
+    maxDimension?: number;   // px; only shrinks larger images
     format?: 'webp' | 'avif' | 'png' | 'jpg' | 'original';
-    quality?: number;         // 0-1, default: 0.92
-  }
-)
+    quality?: number;        // 0-1, default 0.92
+  },
+): Promise<ImageBitsResult>
 ```
 
-### Return Value
+### `ImageBitsResult`
 
-```typescript
+```ts
 {
-  blob: Blob;                    // Processed image
+  blob: Blob;
   metadata: {
     width: number;
     height: number;
     format: string;
-    size: number;                // Size in bytes
-    originalSize?: number;
+    size: number;          // output bytes
+    originalSize?: number; // input bytes (when known)
   };
-  toDataURL(): Promise<string>;  // Get as data URL
-  toArrayBuffer(): Promise<ArrayBuffer>;  // Get as buffer
-  download(filename?: string): void;  // Download (browser only)
+  toDataURL(): Promise<string>;
+  toArrayBuffer(): Promise<ArrayBuffer>;
+  download(filename?: string): void; // browser only; throws in Node
 }
 ```
 
-### Local-Only Alt Text
+### `processImages(inputs, options?)`
 
-```typescript
+```ts
+processImages(
+  inputs: NodeImageInput[] | BrowserImageInput[],
+  options?: ImageBitsOptions & { concurrency?: number },
+): Promise<ImageBitsResult[]>
+```
+
+### Local alt text
+
+```ts
 import {
   buildAltTextManifest,
-  generateLocalAltTextFromBlob,
+  generateLocalAltTextFromBlob,    // Node + browser
+  generateLocalAltTextFromPath,    // Node only
+  stringifyAltTextManifest,
 } from '@oddbits/imagebits';
 
 const local = await generateLocalAltTextFromBlob(result.blob);
 const manifest = buildAltTextManifest(
   [
     {
-      inputName: file.name,
-      outputName: 'optimized.webp',
+      inputName: 'photo.png',
+      outputName: 'photo.webp',
       width: result.metadata.width,
       height: result.metadata.height,
       altText: local.altText,
     },
   ],
-  local.model
+  local.model,
 );
 ```
 
-This flow is local-only. `@oddbits/imagebits` does not require or store user API keys for alt text.
+The alt-text path is **local-only** — no API keys, no third-party endpoints. It uses [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) with the small `Xenova/vit-gpt2-image-captioning` model by default; pass `{ model: 'your/model-id' }` to override.
 
 ## Examples
 
-### CMS Integration
+### Build-step optimization
 
-```typescript
+```ts
+import fs from 'node:fs';
+import path from 'node:path';
+import { processImages } from '@oddbits/imagebits';
+
+const inputs = fs
+  .readdirSync('./src/images')
+  .filter((f) => /\.(png|jpe?g)$/i.test(f))
+  .map((f) => path.join('./src/images', f));
+
+const results = await processImages(inputs, {
+  maxDimension: 1920,
+  format: 'webp',
+  quality: 0.9,
+  concurrency: 4,
+});
+
+fs.mkdirSync('./dist/images', { recursive: true });
+for (let i = 0; i < inputs.length; i++) {
+  const out = path.join('./dist/images', `${path.basename(inputs[i], path.extname(inputs[i]))}.webp`);
+  fs.writeFileSync(out, Buffer.from(await results[i].toArrayBuffer()));
+}
+```
+
+### CMS upload handler
+
+```ts
 import { processImage } from '@oddbits/imagebits';
 
-// Process uploaded image in CMS
-async function handleImageUpload(file: File) {
+async function handleUpload(file: File) {
   const result = await processImage(file, {
     maxDimension: 1200,
     format: 'webp',
-    quality: 0.85
+    quality: 0.85,
   });
-  
-  // Upload to your storage
-  const buffer = await result.toArrayBuffer();
-  await uploadToStorage(buffer, `images/${file.name}.webp`);
-  
-  return {
-    url: await result.toDataURL(),
-    metadata: result.metadata
-  };
+  await uploadToStorage(
+    Buffer.from(await result.toArrayBuffer()),
+    `images/${file.name}.webp`,
+  );
+  return result.metadata;
 }
 ```
 
-### Build Process
+### URL processing
 
-```typescript
-import { processImage } from '@oddbits/imagebits';
-import fs from 'fs';
-
-// Process images during build
-async function optimizeImages() {
-  const files = fs.readdirSync('./src/images');
-  
-  for (const file of files) {
-    const buffer = fs.readFileSync(`./src/images/${file}`);
-    const result = await processImage(buffer, {
-      maxDimension: 1920,
-      format: 'webp',
-      quality: 0.9
-    });
-    
-    const outputBuffer = await result.toArrayBuffer();
-    fs.writeFileSync(`./dist/images/${file}.webp`, Buffer.from(outputBuffer));
-  }
-}
-```
-
-### URL Processing
-
-```typescript
-// Process image from URL
+```ts
 const result = await processImage('https://example.com/image.jpg', {
   maxDimension: 800,
-  format: 'webp'
+  format: 'webp',
 });
 ```
 
-## Supported Formats
+## Supported formats
 
-- **Input**: PNG, JPEG, WebP, AVIF
-- **Output**: PNG, JPEG, WebP, AVIF
+| | Input | Output |
+|-|-------|--------|
+| **Node** (sharp) | PNG, JPEG, WebP, AVIF | PNG, JPEG, WebP, AVIF |
+| **Browser** (canvas) | PNG, JPEG, WebP, AVIF | PNG, JPEG, WebP, AVIF\* |
+
+\*AVIF encode in browsers is gated by the platform. Chrome/Firefox/Safari support varies; most modern engines work.
 
 ## Browser vs Node
 
-- **Browser / bundlers**: import from `@oddbits/imagebits` or `@oddbits/imagebits/browser` — uses the Canvas API (`processImage`, drag-and-drop on the site, etc.).
-- **Node scripts & CI**: use the **`imagebits` CLI** above (`npx @oddbits/imagebits …`) and add `--alt-text local` to emit `alt-text.json`.
+- **Same import** (`import { processImage } from '@oddbits/imagebits'`) in both environments.
+- **Bundler picks the build**: the `browser` field in `package.json` points web bundlers at the canvas build (no sharp); Node consumers get the sharp build.
+- **Explicit subpaths** are also exposed if you need to bypass the bundler hint:
+  - `@oddbits/imagebits/node` — force the sharp build
+  - `@oddbits/imagebits/browser` — force the canvas build
+
+## Versioning
+
+The exported `VERSION` constant tracks `package.json` (kept in sync by release-please via `extra-files`). The browser web component reads it for the desktop window titlebar so a published version flows straight to the UI without a manual edit.
 
 ## License
 

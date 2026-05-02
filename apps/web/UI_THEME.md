@@ -121,6 +121,23 @@ Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** /
 
 - **Links**: `.tool-link` (cyan → pink hover) or inline anchors with `color: var(--color-accent)` for consistency.
 - **Primary actions** inside custom panels: match `.window-btn` / workshop buttons — light gray face, 2px highlight/shadow borders, pressed state inverts bevel (see `.imagebits-workshop-portal button`).
+- **Secondary buttons**: add `.btn-secondary` to any `button` or `.win-link-btn` for a darker grey face — use it for less-emphasized actions (Source links, destructive confirm buttons, dropdown-revealed alternates).
+
+## Design system controls (reuse, don't duplicate)
+
+The "DESIGN SYSTEM" section at the top of `src/styles.css` defines every universal control. **New bits must reuse these classes** rather than re-styling buttons, inputs, sliders, or popovers.
+
+| Class / selector | Use |
+| --- | --- |
+| `button`, `.btn-3d` | Default 3D Win95 button face (height/padding included) |
+| `.btn-secondary` | Darker grey button variant for low-emphasis / destructive |
+| `.window-btn` | 24×24 chrome buttons (titlebar `?`, `_`, `X`) |
+| `.win-link-btn` | `<a>` styled to match `.btn-3d` (works inline with `.win-link-btn-inline`) |
+| `input`, `select`, `textarea` | Inset green-on-black terminal field |
+| `input[type="range"]` | Beveled retro slider (inset rail + bar thumb) |
+| `.popover-anchor` + `.help-trigger` + `.popover` | Yellow Win95-style help popover (`?` toggle) |
+| `.combo-button-group` + `.combo-main-btn` + `.combo-caret-btn` + `.combo-dropdown` + `.combo-item` | Split button with mode dropdown |
+| `.alert-modal-backdrop` + `.alert-modal` + `.alert-modal-icon/title/message/actions` | Centered confirm/alert dialog (no titlebar) |
 
 ## Security-sensitive UI conventions
 
@@ -139,15 +156,169 @@ ImageBits is the reference implementation:
 
 Shell inside another window: **`odd-imagebits`** is borderless/transparent so it does not stack a second “window” inside the parent `.window`. The **workshop** sub-dialog is its own `.window` (fixed, high z-index) and keeps full chrome.
 
+## Alert & confirm modals
+
+For destructive confirms, errors, and notices, use the `.alert-modal-*` design system **instead of** `.window` chrome. Alert modals are intentionally distinct: no titlebar, centered, fixed `min(360px, 100vw - 32px)` width, thick black border + hard drop-shadow, **not draggable, resizable, or closable via X**.
+
+```html
+<div class="alert-modal-backdrop" hidden>
+  <div class="alert-modal" role="alertdialog" aria-modal="true">
+    <div class="alert-modal-icon">⚠️</div>
+    <div class="alert-modal-title">Title text</div>
+    <div class="alert-modal-message">Body copy explaining the consequence.</div>
+    <div class="alert-modal-actions">
+      <button>No! Cancel!</button>
+      <button class="btn-secondary">Yes, I'm aware.</button>
+    </div>
+  </div>
+</div>
+```
+
+- **Portal the backdrop to `document.body`** in `connectedCallback` so `position: fixed` is viewport-relative (otherwise it gets trapped inside ancestor `transform`/stacking contexts and centers on a sub-region instead of the screen).
+- Backdrop mousedown on the empty area and Escape both dismiss the alert.
+- Use `.btn-secondary` on the destructive/accept button so it reads as the consequential (lower-emphasis) action.
+
+## Inline help — popovers
+
+For any inline “?” help affordance:
+
+```html
+<div class="popover-anchor">
+  <label>Field name</label>
+  <button type="button" class="help-trigger" aria-expanded="false">?</button>
+  <div class="popover" role="tooltip" hidden>Old-school help text…</div>
+</div>
+```
+
+Toggle the popover by flipping `hidden` + `aria-expanded`. Close on outside mousedown and Escape.
+
+## Combo buttons (split button + dropdown)
+
+When an action has a default and a few alternates, use the combo button instead of a separate select:
+
+```html
+<div class="combo-button-group">
+  <button class="combo-main-btn">Default action</button>
+  <button class="combo-caret-btn" aria-label="More options">▼</button>
+  <ul class="combo-dropdown" hidden>
+    <li class="combo-item" data-mode="default">Default mode</li>
+    <li class="combo-item" data-mode="custom">Alternate mode…</li>
+  </ul>
+</div>
+```
+
+The caret toggles the dropdown; selecting an item swaps modes via component state and updates the main button label. Dropdown closes on outside mousedown and Escape.
+
+## Dirty-state close confirm
+
+If a workshop dialog can hold unsaved work (loaded files, in-flight processing, generated output), guard the close X **and** Escape with an `.alert-modal` confirm:
+
+1. Add an `isWorkshopDirty(): boolean` helper. Treat “any input loaded”, “processing in flight”, or “output exists” as dirty.
+2. Replace direct `closeWorkshop()` calls on the X button and Escape handler with `requestCloseWorkshop()`:
+   - If dirty → open the alert modal.
+   - Else → close immediately.
+3. The accept button sets cancellation flags **before** calling `closeWorkshop()`. Long-running loops check those flags between iterations and break early so background work stops promptly.
+4. `closeWorkshop()` resets per-session state but does **not** uncache external resources (loaded ML models, etc.) so reopening doesn’t re-download.
+
+`apps/web/src/components/imagebits.ts` (`isWorkshopDirty`, `requestCloseWorkshop`, `acceptConfirmClose`, `closeWorkshop`) is the canonical implementation.
+
+## Bit web component blueprint
+
+Every bit extends **`BitElement`** (`apps/web/src/bits/BitElement.ts`), which provides the generic surface infrastructure — workshop dialog open/close/drag/resize/portal, help dialog, alert/confirm modal, escape priority chain, raise-z on click, document-mousedown chain, dirty-close guard, and cleanup. Subclasses only implement bit-specific bits.
+
+```ts
+import { BitElement } from '../bits/BitElement';
+
+export class NameBitsElement extends BitElement {
+  // bit-specific refs / state…
+
+  protected renderShell(): string {
+    return `
+      <div class="namebits-shell bit-shell"> …intro UI… </div>
+      <div class="window … bit-workshop" hidden>
+        <div class="window-titlebar bit-drag-handle">
+          <span>Title</span>
+          <div class="window-controls">
+            <button class="window-btn bit-workshop-close">X</button>
+          </div>
+        </div>
+        <div class="window-content"> …workshop UI… </div>
+      </div>
+      <div class="window … bit-help-dialog" hidden> …help… </div>
+      <div class="alert-modal-backdrop bit-confirm-backdrop" hidden>
+        <div class="alert-modal">
+          …icon, title, message…
+          <div class="alert-modal-actions">
+            <button class="bit-confirm-cancel">No! Cancel!</button>
+            <button class="btn-secondary bit-confirm-accept">Yes, I'm aware.</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  protected initializeBitElements(): void { /* query bit-specific refs */ }
+  protected attachBitListeners(): void { /* wire bit-specific events */ }
+  protected isWorkshopDirty(): boolean { /* return true if there's unsaved work */ }
+  protected resetWorkshopState(): void { /* clear bit state when workshop closes */ }
+
+  // Optional overrides:
+  protected getHostWindowSelector() { return '#window-namebits'; }
+  protected getVersion() { return VERSION; } // imported from `@oddbits/{name}bits`
+  protected onAcceptConfirmClose() { /* set abort flags before workshop closes */ }
+  protected handleEscapePopover() { /* return true to claim Escape for a bit popover */ return false; }
+  protected onDocumentMouseDownBit(e: MouseEvent) { /* dismiss bit popovers on outside click */ }
+  protected onDisconnect() { /* revoke object URLs */ }
+}
+
+customElements.define('odd-namebits', NameBitsElement);
+```
+
+Then `import './components/namebits';` in `src/main.ts`.
+
+### Required generic class names in `renderShell()`
+
+`BitElement` discovers elements by these classes — they're additive to your bit-specific class names:
+
+| Class | Required for | Notes |
+| --- | --- | --- |
+| `.bit-shell` | always | Root container the workshop returns to on close |
+| `.bit-workshop` | always | Workshop dialog (combine with `.window`) |
+| `.bit-workshop-close` | always | Workshop X button |
+| `.bit-drag-handle` | always | Workshop titlebar (drag region) |
+| `.bit-help-dialog` | optional | Help dialog (combine with `.window`) |
+| `.bit-help-close` | optional | Help dialog X button |
+| `.bit-confirm-backdrop` | optional | Alert/confirm modal backdrop |
+| `.bit-confirm-cancel` / `.bit-confirm-accept` | optional | Confirm dialog buttons |
+| `.bit-help-launch` (in `index.html`) | optional | Buttons inside the host desktop window that open the help dialog |
+| `[data-bit-version]` (in `index.html`) | optional | Empty `<span>` inside the host titlebar; `BitElement` writes `getVersion()` into it. Markup: `…NameBits_v<span data-bit-version>0.0.0</span>.exe` |
+
+### Behaviors `BitElement` gives you for free
+
+- **Host window styling inheritance** — auto-copies the host desktop window's `.pop-*` tint and `.window-title-icon` onto the workshop + help dialog so related dialogs visually belong to the bit. Just drop a `.pop-cyan|yellow|magenta` and a `<span class="window-title-icon">🖼️</span>` on `<div id="window-{name}bits" class="window …">` and `BitElement` propagates them on connect.
+- **Live version in titlebar** — override `getVersion()` to return your package's `VERSION` export and `BitElement` writes it into any `[data-bit-version]` span inside the host titlebar. The `VERSION` const lives in `packages/{name}bits/src/index.ts` and is kept in sync with `package.json` by release-please via the `extra-files` entry in `release-please-config.json`. After a release the published version flows through to the desktop window titlebar with no manual edit.
+- Workshop / help / alert modal portaled to `document.body` (so `position: fixed` escapes ancestor stacking contexts).
+- Workshop drag from `.bit-drag-handle` + viewport clamp + edge-handle resize via `attachFixedWindowResize`.
+- Help dialog drag + resize + viewport clamp.
+- Shared static `dialogZ` counter — newly clicked dialogs raise above siblings (works across all bits on the page).
+- Escape priority chain: alert → bit popover (`handleEscapePopover()`) → help → workshop close.
+- Document mousedown forwarded to `onDocumentMouseDownBit()` for dismissing your own popovers/dropdowns.
+- Help launcher attachment from `.bit-help-launch` inside the host window selected by `getHostWindowSelector()`.
+- Dirty-close confirm: X + Escape route through `requestCloseWorkshop()` → `.bit-confirm-backdrop` → on accept calls `onAcceptConfirmClose()` (your abort flags) then `closeWorkshop()` → `resetWorkshopState()` (your bit cleanup).
+- `disconnectedCallback` removes portaled elements + all generic listeners; you just implement `onDisconnect()` for object-URL revocation.
+
 ## New bit checklist
 
-1. Add CSS variables / existing classes before inventing new ones.
-2. Add desktop icon + matching `id="window-…"`.
-3. Use `.window.draggable` + titlebar + `.window-content`.
-4. Pick optional `.pop-*` and initial `z-index` so windows don’t all stack identically.
-5. For scroll-in content, use `.anime-section` + `.anime-item`.
-6. For nested heavy UI, consider a web component that reuses `.window` dialog classes and `z-index ≥ 400` if it must cover other windows.
-7. Register the component in `src/main.ts` with `import './components/…'`.
+1. **Lib package**: scaffold `packages/{name}bits/` (mirror `packages/imagebits/`) for the headless logic + tests. Export a `VERSION` constant from `src/index.ts` with the `// x-release-please-version` marker (initial value matching `package.json`), and add an `extra-files` entry for `src/index.ts` to the package's section of `release-please-config.json` so future releases stay in sync.
+2. **Web component**: create `apps/web/src/components/{name}bits.ts` extending `BitElement`; override `getVersion()` to return the imported `VERSION`. Register as `<odd-{name}bits>` in `src/main.ts` (`import './components/{name}bits';`).
+3. **Desktop icon**: add `<div class="desktop-icon" data-target="window-{name}bits">` to `index.html`.
+4. **Desktop window**: add `<div id="window-{name}bits" class="window draggable …">` whose `id` matches the `data-target`. Include intro copy, the `<odd-{name}bits>` element, and a `.bit-actions` row with `Source` (`.win-link-btn.btn-secondary`) + `How To` buttons. Use `<span data-bit-version>0.0.0</span>` inside the titlebar as the version slot (`BitElement` fills it).
+5. **Workshop dialog** (if the bit needs one): own `.window` markup with `position: fixed` + `z-index: 400`, portaled to `document.body` on open.
+6. **Reuse design system classes** for every button, input, slider, popover, combo, and alert — see the table above. Do **not** invent new variants.
+7. **Alert modals**: use `.alert-modal-*` markup for any confirm/notice; portal the backdrop to `document.body`.
+8. **Dirty-close guard**: if the workshop holds unsaved work, route X + Escape through `requestCloseWorkshop()` and confirm via `.alert-modal`.
+9. **Cleanup**: revoke object URLs in `onDisconnect()` (BitElement removes portaled elements automatically).
+10. **Token-first CSS**: reuse `:root` variables instead of hard-coding hex colors. Pick optional `.pop-*` and initial `z-index` so windows don’t all stack identically.
 
 ## Files
 
@@ -156,4 +327,5 @@ Shell inside another window: **`odd-imagebits`** is borderless/transparent so it
 | `index.html` | Background layers, desktop, icons, window instances |
 | `src/styles.css` | Tokens, windows, desktop, tool/docs patterns, per-component overrides |
 | `src/main.ts` | Parallax, anime entrance, drag/stacking, desktop icon → window |
+| `src/bits/BitElement.ts` | Base class for every bit (workshop/help/alert + drag/resize/portal/escape/dirty-close) |
 | `src/components/*.ts` | Feature UI; mirror window chrome for dialogs |

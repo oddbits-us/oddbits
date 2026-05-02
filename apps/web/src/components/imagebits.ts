@@ -1,15 +1,22 @@
 /**
  * ImageBits Web Component
- * Vanilla TypeScript Web Component for image processing
  *
- * UI: borderless shell inside the parent `.window` (styles `odd-imagebits`); workshop is a separate
- * `.window` (fixed, z-index 400). See apps/web/UI_THEME.md.
+ * Extends BitElement (apps/web/src/bits/BitElement.ts), which provides the generic
+ * surface infrastructure (workshop dialog, help dialog, alert/confirm modal,
+ * escape chain, drag, resize, raise-z, portal-to-body, dirty-close confirm).
+ *
+ * See apps/web/UI_THEME.md for the bit architecture pattern.
  */
 
-import { buildAltTextManifest, generateLocalAltTextFromBlob, processImage } from '@oddbits/imagebits';
-import { attachFixedWindowResize } from '../windowResize';
+import {
+  VERSION,
+  buildAltTextManifest,
+  generateLocalAltTextFromBlob,
+  processImage,
+} from '@oddbits/imagebits';
 import type { AltTextEntry, AltTextManifest, ImageBitsOptions } from '@oddbits/imagebits';
 import { zipSync } from 'fflate';
+import { BitElement } from '../bits/BitElement';
 
 type AltDraft = {
   text: string;
@@ -17,59 +24,45 @@ type AltDraft = {
   warning?: string;
 };
 
-export class ImageBitsElement extends HTMLElement {
-  /** Stacking order above desktop `.window` instances (those use ~100+). */
-  private static dialogZ = 400;
-
-  private titlebarMousedown: ((e: MouseEvent) => void) | undefined;
-  private helpTitlebarMousedown: ((e: MouseEvent) => void) | undefined;
-
+export class ImageBitsElement extends BitElement {
+  // ====== bit-specific element refs ======
   private fileInput: HTMLInputElement | null = null;
-  private shell: HTMLElement | null = null;
   private dropZone: HTMLElement | null = null;
   private introError: HTMLElement | null = null;
-  private workshop: HTMLElement | null = null;
-  private helpDialog: HTMLElement | null = null;
-  private helpLaunchers: HTMLElement[] = [];
   private previewImage: HTMLImageElement | null = null;
   private batchFileList: HTMLElement | null = null;
   private previewInfo: HTMLElement | null = null;
-  private generateAltAllBtn: HTMLButtonElement | null = null;
+  private generateAltMainBtn: HTMLButtonElement | null = null;
+  private generateAltCaretBtn: HTMLButtonElement | null = null;
+  private generateAltDropdown: HTMLElement | null = null;
   private altModelInput: HTMLInputElement | null = null;
+  private altHelpTrigger: HTMLButtonElement | null = null;
+  private altHelpPopover: HTMLElement | null = null;
+  private customAltActions: HTMLElement | null = null;
   private processButton: HTMLButtonElement | null = null;
   private downloadBtn: HTMLButtonElement | null = null;
   private logs: HTMLElement | null = null;
-  private loading: HTMLElement | null = null;
-  private error: HTMLElement | null = null;
+
+  // ====== bit-specific state ======
   private currentFiles: File[] = [];
   private processedBlob: Blob | null = null;
   /** After batch process: maps zip-safe filenames to blobs. */
   private batchOutputs: { zipName: string; blob: Blob }[] | null = null;
-  private batchOutputMeta: Array<{ inputName: string; outputName: string; width: number; height: number }> =
-    [];
+  private batchOutputMeta: Array<{ inputName: string; outputName: string; width: number; height: number }> = [];
   private altManifest: AltTextManifest | null = null;
   private altDrafts: AltDraft[] = [];
   private thumbnailUrls: string[] = [];
   private previewObjectUrl: string | null = null;
-  private onEscapeBound = (e: KeyboardEvent) => this.onEscape(e);
-  private onResizeBound = () => this.clampDialogToViewport();
-  private onHelpResizeBound = () => this.clampHelpToViewport();
-  private raiseDialogZBound = () => this.raiseDialogZ();
-  private openHelpBound = () => this.openHelpDialog();
-  private onHelpLauncherMouseDownBound = (e: MouseEvent) => e.stopPropagation();
+  private altAllGenerating = false;
+  private altAllStopRequested = false;
+  private activeAltAllButton: HTMLButtonElement | null = null;
+  private currentAltMode: 'default' | 'custom' = 'default';
+  private convertStopRequested = false;
 
-  private dialogDrag: {
-    move: (e: MouseEvent) => void;
-    up: () => void;
-  } | null = null;
-  private helpDialogDrag: {
-    move: (e: MouseEvent) => void;
-    up: () => void;
-  } | null = null;
-
-  connectedCallback() {
-    this.innerHTML = `
-      <div class="imagebits-shell">
+  // ====== BitElement: shell HTML ======
+  protected renderShell(): string {
+    return `
+      <div class="imagebits-shell bit-shell">
         <div class="imagebits-intro">
           <div class="imagebits-intro-error" id="imagebits-intro-error" hidden></div>
 
@@ -83,16 +76,16 @@ export class ImageBitsElement extends HTMLElement {
 
         <div
           id="imagebits-workshop"
-          class="window imagebits-dialog-window imagebits-workshop-portal imagebits-workshop"
+          class="window imagebits-dialog-window imagebits-workshop-portal imagebits-workshop bit-workshop"
           role="dialog"
           aria-modal="false"
           aria-labelledby="imagebits-workshop-title"
           hidden
         >
-          <div class="window-titlebar imagebits-dialog-drag-handle">
+          <div class="window-titlebar imagebits-dialog-drag-handle bit-drag-handle">
             <span id="imagebits-workshop-title">ImageBits — Process</span>
             <div class="window-controls">
-              <button type="button" class="window-btn imagebits-workshop-close" aria-label="Close">X</button>
+              <button type="button" class="window-btn imagebits-workshop-close bit-workshop-close" aria-label="Close">X</button>
             </div>
           </div>
           <div class="window-content imagebits-workshop-body">
@@ -103,13 +96,13 @@ export class ImageBitsElement extends HTMLElement {
                   <ul class="imagebits-batch-list" id="batch-file-list" hidden></ul>
                 </div>
                 <div class="preview-info" id="preview-info"></div>
+                <div class="logs" id="logs"></div>
               </div>
               <div class="imagebits-col imagebits-col-actions">
                 <div class="controls" id="controls">
                   <div class="control-group">
                     <label>Max Dimension (px)</label>
-                    <input type="number" id="max-dimension" placeholder="e.g. 800" min="1">
-                    <small>Maximum width or height in pixels</small>
+                    <input type="number" id="max-dimension" value="1080" min="1">
                   </div>
 
                   <div class="control-group">
@@ -132,28 +125,38 @@ export class ImageBitsElement extends HTMLElement {
                   </div>
 
                   <div class="control-group imagebits-alt-control">
-                    <label>Alt Text</label>
-                    <small>Runs locally in your browser (slow). First run downloads model files from Hugging Face and caches them in your browser. Your images and other user data are never uploaded.</small>
-                    <input
-                      type="text"
-                      id="alt-model-input"
-                      placeholder="Optional model: Xenova/vit-gpt2-image-captioning or HF URL"
-                      spellcheck="false"
-                      autocomplete="off"
-                    >
-                    <button type="button" id="generate-alt-all-btn">Generate Alt Text (All)</button>
+                    <div class="popover-anchor">
+                      <label for="generate-alt-main-btn">Alt Text</label>
+                      <button type="button" class="help-trigger" id="alt-text-help-trigger" aria-label="Alt text help" aria-expanded="false" aria-controls="alt-text-help-popover">?</button>
+                      <div class="popover" id="alt-text-help-popover" role="tooltip" hidden>
+                        Runs locally in your browser (slow). First run downloads model files from Hugging Face and caches them in your browser. Your images and other user data are never uploaded.
+                      </div>
+                    </div>
+                    <div class="imagebits-alt-custom-actions" id="imagebits-alt-custom-actions" hidden>
+                      <label for="alt-model-input" class="imagebits-input-label">Model name or id</label>
+                      <input
+                        type="text"
+                        id="alt-model-input"
+                        placeholder="e.g. Xenova/vit-gpt2-image-captioning or Hugging Face model URL"
+                        spellcheck="false"
+                        autocomplete="off"
+                      >
+                    </div>
+                    <div class="combo-button-group">
+                      <button type="button" id="generate-alt-main-btn" class="combo-main-btn">Generate Alt Text (All)</button>
+                      <button type="button" id="generate-alt-caret-btn" class="combo-caret-btn" aria-label="More options">▼</button>
+                      <ul class="combo-dropdown" id="generate-alt-dropdown" hidden>
+                        <li class="combo-item" data-mode="default">Default Model</li>
+                        <li class="combo-item" data-mode="custom">Choose Custom Model...</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
 
                 <div class="imagebits-actions">
                   <button type="button" id="process-btn">Convert</button>
-                  <button type="button" id="download-btn" class="imagebits-download" hidden>Download</button>
-                  <button type="button" class="imagebits-change-file">Different images…</button>
+                  <button type="button" id="download-btn" class="imagebits-download" disabled>Download</button>
                 </div>
-
-                <div class="loading" id="loading">Processing…</div>
-                <div class="error" id="error"></div>
-                <div class="logs" id="logs"></div>
               </div>
             </div>
           </div>
@@ -161,7 +164,7 @@ export class ImageBitsElement extends HTMLElement {
 
         <div
           id="imagebits-help"
-          class="window imagebits-dialog-window imagebits-help-dialog"
+          class="window imagebits-dialog-window imagebits-help-dialog bit-help-dialog"
           role="dialog"
           aria-modal="false"
           aria-labelledby="imagebits-help-title"
@@ -170,62 +173,116 @@ export class ImageBitsElement extends HTMLElement {
           <div class="window-titlebar">
             <span id="imagebits-help-title">ImageBits Help</span>
             <div class="window-controls">
-              <button type="button" class="window-btn imagebits-help-close" aria-label="Close help">X</button>
+              <button type="button" class="window-btn imagebits-help-close bit-help-close" aria-label="Close help">X</button>
             </div>
           </div>
           <div class="window-content imagebits-help-content">
-            <h3>Basic Usage</h3>
-            <pre><code>import { processImage } from '@oddbits/imagebits';
+            <p>Same API surface in browser and Node &mdash; bundlers pick the right build.</p>
 
-const result = await processImage(file, {
-  format: 'webp',
-  maxDimension: 800,
-  quality: 0.92
-});
+            <h3>In your code</h3>
+            <pre><code>npm install @oddbits/imagebits
 
-result.download('optimized.webp');</code></pre>
-            <p>Tips: drag and drop one or many images, tweak output options, then convert and download.</p>
+import { processImage, processImages } from '@oddbits/imagebits';
+
+const r = await processImage(input, { format: 'webp', maxDimension: 1080 });
+// input: File | Blob | Buffer | ArrayBuffer | path | URL</code></pre>
+
+            <h3>From the CLI</h3>
+            <pre><code>npx @oddbits/imagebits *.png -f webp -o ./out/
+npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></pre>
+
+            <p>
+              Full docs, options, and source on
+              <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/imagebits/README.md" target="_blank" rel="noopener noreferrer">GitHub</a>.
+            </p>
+          </div>
+        </div>
+
+        <div
+          id="imagebits-confirm-close"
+          class="alert-modal-backdrop bit-confirm-backdrop"
+          hidden
+        >
+          <div
+            class="alert-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="imagebits-confirm-title"
+            aria-describedby="imagebits-confirm-message"
+          >
+            <div class="alert-modal-icon" aria-hidden="true">⚠️</div>
+            <div class="alert-modal-title" id="imagebits-confirm-title">Discard unsaved progress?</div>
+            <div class="alert-modal-message" id="imagebits-confirm-message">
+              You have unsaved images, alt text, or work in progress in this dialog.
+              Closing will stop any active processing and clear everything from the workshop.
+            </div>
+            <div class="alert-modal-actions">
+              <button type="button" id="imagebits-confirm-cancel" class="bit-confirm-cancel">No! Cancel!</button>
+              <button type="button" id="imagebits-confirm-accept" class="btn-secondary bit-confirm-accept">Yes, I'm aware.</button>
+            </div>
           </div>
         </div>
       </div>
     `;
-
-    this.initializeElements();
-    this.attachEventListeners();
-    document.addEventListener('keydown', this.onEscapeBound);
   }
 
-  disconnectedCallback() {
-    document.removeEventListener('keydown', this.onEscapeBound);
-    window.removeEventListener('resize', this.onResizeBound);
-    window.removeEventListener('resize', this.onHelpResizeBound);
-    this.detachHelpLauncher();
-    this.teardownDialogDrag();
-    this.teardownHelpDialogDrag();
+  // ====== BitElement: hooks ======
+
+  protected getHostWindowSelector(): string | null {
+    return '#window-imagebits';
+  }
+
+  protected getWorkshopMinSize(): { width: number; height: number } {
+    return { width: 360, height: 200 };
+  }
+
+  protected getHelpMinSize(): { width: number; height: number } {
+    return { width: 360, height: 220 };
+  }
+
+  protected getVersion(): string | null {
+    return VERSION;
+  }
+
+  protected isWorkshopDirty(): boolean {
+    if (!this.workshop || this.workshop.hidden) return false;
+    if (this.currentFiles.length > 0) return true;
+    if (this.altAllGenerating) return true;
+    if (this.batchOutputs && this.batchOutputs.length > 0) return true;
+    return false;
+  }
+
+  protected onAcceptConfirmClose(): void {
+    this.convertStopRequested = true;
+    this.altAllStopRequested = true;
+  }
+
+  protected handleEscapePopover(): boolean {
+    if (this.altHelpPopover && !this.altHelpPopover.hidden) {
+      this.hideAltHelpPopover();
+      return true;
+    }
+    return false;
+  }
+
+  protected onDocumentMouseDownBit(e: MouseEvent): void {
+    const target = e.target as Node | null;
+    if (!target) return;
+    if (this.altHelpPopover && !this.altHelpPopover.hidden && this.altHelpTrigger) {
+      if (!this.altHelpPopover.contains(target) && !this.altHelpTrigger.contains(target)) {
+        this.hideAltHelpPopover();
+      }
+    }
+    if (this.generateAltDropdown && !this.generateAltDropdown.hidden && this.generateAltCaretBtn) {
+      if (!this.generateAltDropdown.contains(target) && !this.generateAltCaretBtn.contains(target)) {
+        this.hideAltDropdown();
+      }
+    }
+  }
+
+  protected onDisconnect(): void {
     this.revokePreviewUrl();
     this.revokeThumbnailUrls();
-    if (this.workshop && document.body.contains(this.workshop)) {
-      this.workshop.remove();
-    }
-    if (this.helpDialog && document.body.contains(this.helpDialog)) {
-      this.helpDialog.remove();
-    }
-  }
-
-  private onEscape(e: KeyboardEvent) {
-    if (e.key !== 'Escape') return;
-    if (this.helpDialog && !this.helpDialog.hidden) {
-      this.closeHelpDialog();
-      return;
-    }
-    if (!this.workshop || this.workshop.hidden) return;
-    this.closeWorkshop();
-  }
-
-  private raiseDialogZ() {
-    if (!this.workshop || this.workshop.hidden) return;
-    ImageBitsElement.dialogZ += 1;
-    this.workshop.style.zIndex = String(ImageBitsElement.dialogZ);
   }
 
   private revokePreviewUrl() {
@@ -235,23 +292,23 @@ result.download('optimized.webp');</code></pre>
     }
   }
 
-  private initializeElements() {
-    this.shell = this.querySelector('.imagebits-shell');
+  protected initializeBitElements(): void {
     this.fileInput = this.querySelector('#file-input') as HTMLInputElement;
     this.dropZone = this.querySelector('#drop-zone') as HTMLElement;
     this.introError = this.querySelector('#imagebits-intro-error') as HTMLElement;
-    this.workshop = this.querySelector('#imagebits-workshop') as HTMLElement;
-    this.helpDialog = this.querySelector('#imagebits-help') as HTMLElement;
     this.previewImage = this.querySelector('#preview-image') as HTMLImageElement;
     this.batchFileList = this.querySelector('#batch-file-list') as HTMLElement;
     this.previewInfo = this.querySelector('#preview-info') as HTMLElement;
-    this.generateAltAllBtn = this.querySelector('#generate-alt-all-btn') as HTMLButtonElement;
+    this.generateAltMainBtn = this.querySelector('#generate-alt-main-btn') as HTMLButtonElement;
+    this.generateAltCaretBtn = this.querySelector('#generate-alt-caret-btn') as HTMLButtonElement;
+    this.generateAltDropdown = this.querySelector('#generate-alt-dropdown') as HTMLElement;
     this.altModelInput = this.querySelector('#alt-model-input') as HTMLInputElement;
+    this.altHelpTrigger = this.querySelector('#alt-text-help-trigger') as HTMLButtonElement;
+    this.altHelpPopover = this.querySelector('#alt-text-help-popover') as HTMLElement;
+    this.customAltActions = this.querySelector('#imagebits-alt-custom-actions') as HTMLElement;
     this.processButton = this.querySelector('#process-btn') as HTMLButtonElement;
     this.downloadBtn = this.querySelector('#download-btn') as HTMLButtonElement;
     this.logs = this.querySelector('#logs') as HTMLElement;
-    this.loading = this.querySelector('#loading') as HTMLElement;
-    this.error = this.querySelector('#error') as HTMLElement;
 
     const qualitySlider = this.querySelector('#quality') as HTMLInputElement;
     const qualityValue = this.querySelector('#quality-value') as HTMLElement;
@@ -267,7 +324,7 @@ result.download('optimized.webp');</code></pre>
     }
   }
 
-  private attachEventListeners() {
+  protected attachBitListeners(): void {
     if (this.fileInput) {
       this.fileInput.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
@@ -324,9 +381,37 @@ result.download('optimized.webp');</code></pre>
       });
     }
 
-    if (this.generateAltAllBtn) {
-      this.generateAltAllBtn.addEventListener('click', () => {
-        void this.generateAltTextForAll();
+    if (this.generateAltMainBtn) {
+      this.generateAltMainBtn.addEventListener('click', () => {
+        if (this.currentAltMode === 'default') {
+          void this.generateAltTextForAllDefaultModel();
+        } else {
+          void this.generateAltTextForAllCustomModel();
+        }
+      });
+    }
+    if (this.generateAltCaretBtn) {
+      this.generateAltCaretBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleAltDropdown();
+      });
+    }
+    if (this.generateAltDropdown) {
+      this.generateAltDropdown.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const item = target.closest<HTMLElement>('.combo-item');
+        if (!item) return;
+        const mode = item.dataset.mode as 'default' | 'custom';
+        if (mode) this.setAltMode(mode);
+        this.hideAltDropdown();
+      });
+    }
+    if (this.altHelpTrigger) {
+      this.altHelpTrigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleAltHelpPopover();
       });
     }
 
@@ -341,57 +426,15 @@ result.download('optimized.webp');</code></pre>
       });
       this.batchFileList.addEventListener('input', (e) => {
         const target = e.target as HTMLElement;
-        const editor = target.closest<HTMLElement>('.imagebits-batch-alt-editor');
+        const editor = target.closest<HTMLTextAreaElement>('.imagebits-batch-alt-editor');
         if (!editor) return;
         const index = Number(editor.dataset.index ?? '-1');
         if (Number.isNaN(index) || index < 0 || !this.altDrafts[index]) return;
-        this.altDrafts[index].text = (editor.textContent ?? '').trim();
+        this.autoResizeAltEditor(editor);
+        this.altDrafts[index].text = editor.value.trim();
         this.altDrafts[index].status = this.altDrafts[index].text ? 'ready' : 'idle';
       });
     }
-
-    const changeBtn = this.querySelector('.imagebits-change-file');
-    if (changeBtn) {
-      changeBtn.addEventListener('click', () => {
-        this.closeWorkshop();
-        this.fileInput?.click();
-      });
-    }
-
-    const closeBtn = this.querySelector('.imagebits-workshop-close');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.closeWorkshop());
-    }
-
-    const helpCloseBtn = this.querySelector('.imagebits-help-close');
-    if (helpCloseBtn) {
-      helpCloseBtn.addEventListener('click', () => this.closeHelpDialog());
-    }
-
-    this.attachHelpLauncher();
-  }
-
-  private attachHelpLauncher() {
-    this.detachHelpLauncher();
-    const hostWindow = this.closest('#window-imagebits');
-    const launchers = hostWindow
-      ? [...hostWindow.querySelectorAll<HTMLElement>('.imagebits-help-launch')]
-      : [];
-    if (launchers.length === 0) return;
-    launchers.forEach((launcher) => {
-      launcher.addEventListener('mousedown', this.onHelpLauncherMouseDownBound);
-      launcher.addEventListener('click', this.openHelpBound);
-    });
-    this.helpLaunchers = launchers;
-  }
-
-  private detachHelpLauncher() {
-    if (this.helpLaunchers.length === 0) return;
-    this.helpLaunchers.forEach((launcher) => {
-      launcher.removeEventListener('mousedown', this.onHelpLauncherMouseDownBound);
-      launcher.removeEventListener('click', this.openHelpBound);
-    });
-    this.helpLaunchers = [];
   }
 
   private hideIntroError() {
@@ -424,12 +467,11 @@ result.download('optimized.webp');</code></pre>
     this.revokeThumbnailUrls();
     this.thumbnailUrls = images.map((f) => URL.createObjectURL(f));
     this.altDrafts = images.map(() => ({ text: '', status: 'idle' }));
-    this.hideError();
     this.processedBlob = null;
     this.batchOutputs = null;
     this.batchOutputMeta = [];
     this.altManifest = null;
-    if (this.downloadBtn) this.downloadBtn.hidden = true;
+    if (this.downloadBtn) this.downloadBtn.disabled = true;
     this.clearLogs();
 
     this.revokePreviewUrl();
@@ -460,7 +502,7 @@ result.download('optimized.webp');</code></pre>
   private syncProcessButtonLabel() {
     if (!this.processButton) return;
     const n = this.currentFiles.length;
-    this.processButton.textContent = n > 1 ? `Convert all (${n})` : 'Convert';
+    this.processButton.textContent = n > 1 ? `Bulk Convert Images (${n})` : 'Convert Image';
   }
 
   private renderBatchFileListPending() {
@@ -469,27 +511,38 @@ result.download('optimized.webp');</code></pre>
     this.batchFileList.innerHTML = this.currentFiles
       .map((f, i) => {
         const draft = this.altDrafts[i] ?? { text: '', status: 'idle' as const };
-        const statusText =
+        const buttonText =
           draft.status === 'generating'
             ? 'Generating…'
-            : draft.status === 'error'
-              ? 'Alt error'
-              : draft.status === 'ready'
-                ? 'Ready'
-                : 'Pending';
+            : draft.status === 'ready'
+              ? 'Regenerate'
+              : draft.status === 'error'
+                ? 'Retry'
+                : 'Generate Alt Text';
+        const buttonExtraClass = draft.status === 'generating' ? ' is-active' : '';
         return `<li class="imagebits-batch-item" data-index="${i}">
           <img class="imagebits-batch-thumb" src="${this.thumbnailUrls[i] ?? ''}" alt="Thumbnail for ${this.escapeHtml(f.name)}">
           <div class="imagebits-batch-main">
-            <span class="imagebits-batch-name">${this.escapeHtml(f.name)}</span>
-            <div class="imagebits-batch-alt-editor" data-index="${i}" contenteditable="true" role="textbox" aria-label="Alt text for ${this.escapeHtml(f.name)}">${this.escapeHtml(draft.text)}</div>
-          </div>
-          <div class="imagebits-batch-side">
-            <button type="button" class="imagebits-batch-generate" data-index="${i}" ${draft.status === 'generating' ? 'disabled' : ''}>Generate</button>
-            <span class="imagebits-batch-status ${draft.status === 'error' ? 'imagebits-batch-err' : draft.status === 'ready' ? 'imagebits-batch-ok' : ''}" title="${this.escapeHtml(draft.warning ?? '')}">${statusText}</span>
+            <div class="imagebits-batch-row imagebits-batch-row-name">
+              <span class="imagebits-batch-name">${this.escapeHtml(f.name)}</span>
+              <span class="imagebits-batch-convert-status" title=""></span>
+            </div>
+            <div class="imagebits-batch-row imagebits-batch-row-alt">
+              <textarea class="imagebits-batch-alt-editor" data-index="${i}" rows="1" aria-label="Alt text for ${this.escapeHtml(f.name)}">${this.escapeHtml(draft.text)}</textarea>
+              <button type="button" class="imagebits-batch-generate${buttonExtraClass}" data-index="${i}" ${draft.status === 'generating' ? 'disabled' : ''} title="${this.escapeHtml(draft.warning ?? '')}">${buttonText}</button>
+            </div>
           </div>
         </li>`;
       })
       .join('');
+    const editors = this.batchFileList.querySelectorAll<HTMLTextAreaElement>('.imagebits-batch-alt-editor');
+    editors.forEach((editor) => this.autoResizeAltEditor(editor));
+  }
+
+  private autoResizeAltEditor(editor: HTMLTextAreaElement) {
+    editor.style.height = 'auto';
+    const minHeight = 30;
+    editor.style.height = `${Math.max(editor.scrollHeight, minHeight)}px`;
   }
 
   private escapeHtml(s: string): string {
@@ -502,9 +555,9 @@ result.download('optimized.webp');</code></pre>
 
   private setBatchRowStatus(index: number, text: string, ok: boolean) {
     const li = this.batchFileList?.querySelector(`[data-index="${index}"]`);
-    const status = li?.querySelector('.imagebits-batch-status');
+    const status = li?.querySelector('.imagebits-batch-convert-status');
     if (status) {
-      status.textContent = text;
+      status.textContent = ok ? `\u2713 ${text}` : text;
       status.classList.toggle('imagebits-batch-ok', ok);
       status.classList.toggle('imagebits-batch-err', !ok);
     }
@@ -517,182 +570,17 @@ result.download('optimized.webp');</code></pre>
     this.renderBatchFileListPending();
   }
 
-  private clampDialogToViewport() {
-    const el = this.workshop;
-    if (!el || el.hidden) return;
-    const pad = 8;
-    const bar =
-      el.querySelector<HTMLElement>('.imagebits-dialog-drag-handle')?.getBoundingClientRect() ??
-      el.getBoundingClientRect();
-    let dx = 0;
-    let dy = 0;
-    if (bar.left < pad) dx += pad - bar.left;
-    if (bar.top < pad) dy += pad - bar.top;
-    if (bar.right > window.innerWidth - pad) dx -= bar.right - (window.innerWidth - pad);
-    if (bar.bottom > window.innerHeight - pad) dy -= bar.bottom - (window.innerHeight - pad);
-    if (dx !== 0 || dy !== 0) {
-      const rect = el.getBoundingClientRect();
-      el.style.left = `${rect.left + dx}px`;
-      el.style.top = `${rect.top + dy}px`;
+  // ====== BitElement: workshop reset ======
+
+  protected resetWorkshopState(): void {
+    this.altAllGenerating = false;
+    this.activeAltAllButton = null;
+    if (this.generateAltMainBtn) {
+      this.generateAltMainBtn.classList.remove('is-active');
     }
-  }
-
-  private setupDialogDrag() {
-    this.teardownDialogDrag();
-    const workshop = this.workshop;
-    const titlebar = workshop?.querySelector<HTMLElement>('.imagebits-dialog-drag-handle');
-    if (!workshop || !titlebar) return;
-
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let origLeft = 0;
-    let origTop = 0;
-
-    const onMove = (e: MouseEvent) => {
-      const dx = e.clientX - dragStartX;
-      const dy = e.clientY - dragStartY;
-      workshop.style.left = `${origLeft + dx}px`;
-      workshop.style.top = `${origTop + dy}px`;
-      this.clampDialogToViewport();
-    };
-
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      this.dialogDrag = null;
-    };
-
-    const onDown = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest('.window-btn')) return;
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
-      const r = workshop.getBoundingClientRect();
-      origLeft = r.left;
-      origTop = r.top;
-      ImageBitsElement.dialogZ += 1;
-      workshop.style.zIndex = String(ImageBitsElement.dialogZ);
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      this.dialogDrag = { move: onMove, up: onUp };
-      e.preventDefault();
-    };
-
-    this.titlebarMousedown = onDown;
-    titlebar.addEventListener('mousedown', onDown);
-  }
-
-  private teardownDialogDrag() {
-    const titlebar = this.workshop?.querySelector<HTMLElement>('.imagebits-dialog-drag-handle');
-    if (titlebar && this.titlebarMousedown) {
-      titlebar.removeEventListener('mousedown', this.titlebarMousedown);
-    }
-    this.titlebarMousedown = undefined;
-    if (this.dialogDrag) {
-      document.removeEventListener('mousemove', this.dialogDrag.move);
-      document.removeEventListener('mouseup', this.dialogDrag.up);
-      this.dialogDrag = null;
-    }
-  }
-
-  private setupHelpDialogDrag() {
-    this.teardownHelpDialogDrag();
-    const help = this.helpDialog;
-    const titlebar = help?.querySelector<HTMLElement>('.window-titlebar');
-    if (!help || !titlebar) return;
-
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let origLeft = 0;
-    let origTop = 0;
-
-    const onMove = (e: MouseEvent) => {
-      const dx = e.clientX - dragStartX;
-      const dy = e.clientY - dragStartY;
-      help.style.left = `${origLeft + dx}px`;
-      help.style.top = `${origTop + dy}px`;
-      this.clampHelpToViewport();
-    };
-
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      this.helpDialogDrag = null;
-    };
-
-    const onDown = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest('.window-btn')) return;
-      if ((e.target as HTMLElement).closest('.window-resize-handle')) return;
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
-      const rect = help.getBoundingClientRect();
-      origLeft = rect.left;
-      origTop = rect.top;
-      ImageBitsElement.dialogZ += 1;
-      help.style.zIndex = String(ImageBitsElement.dialogZ);
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      this.helpDialogDrag = { move: onMove, up: onUp };
-      e.preventDefault();
-    };
-
-    this.helpTitlebarMousedown = onDown;
-    titlebar.addEventListener('mousedown', onDown);
-  }
-
-  private teardownHelpDialogDrag() {
-    const titlebar = this.helpDialog?.querySelector<HTMLElement>('.window-titlebar');
-    if (titlebar && this.helpTitlebarMousedown) {
-      titlebar.removeEventListener('mousedown', this.helpTitlebarMousedown);
-    }
-    this.helpTitlebarMousedown = undefined;
-    if (this.helpDialogDrag) {
-      document.removeEventListener('mousemove', this.helpDialogDrag.move);
-      document.removeEventListener('mouseup', this.helpDialogDrag.up);
-      this.helpDialogDrag = null;
-    }
-  }
-
-  private openWorkshop() {
-    if (!this.workshop) return;
-    /* Portal to body so position:fixed is viewport-relative; parent tool window uses transform. */
-    if (this.workshop.parentElement !== document.body) {
-      document.body.appendChild(this.workshop);
-    }
-    this.workshop.hidden = false;
-    this.workshop.style.position = 'fixed';
-    ImageBitsElement.dialogZ += 1;
-    this.workshop.style.zIndex = String(ImageBitsElement.dialogZ);
-    void this.workshop.offsetHeight;
-    const rect = this.workshop.getBoundingClientRect();
-    const left = Math.max(8, (window.innerWidth - rect.width) / 2);
-    const top = Math.max(8, (window.innerHeight - rect.height) / 2);
-    this.workshop.style.left = `${left}px`;
-    this.workshop.style.top = `${top}px`;
-    this.clampDialogToViewport();
-    this.setupDialogDrag();
-    attachFixedWindowResize(this.workshop, {
-      clamp: () => this.clampDialogToViewport(),
-      minWidth: 360,
-      minHeight: 200,
-    });
-    this.workshop.addEventListener('mousedown', this.raiseDialogZBound);
-    window.addEventListener('resize', this.onResizeBound);
-  }
-
-  private closeWorkshop() {
-    if (!this.workshop) return;
-    window.removeEventListener('resize', this.onResizeBound);
-    this.workshop.removeEventListener('mousedown', this.raiseDialogZBound);
-    this.teardownDialogDrag();
-    this.workshop.hidden = true;
-    this.workshop.style.position = '';
-    this.workshop.style.left = '';
-    this.workshop.style.top = '';
-    this.workshop.style.zIndex = '';
-    const shell = this.querySelector('.imagebits-shell');
-    if (shell && this.workshop.parentElement === document.body) {
-      shell.appendChild(this.workshop);
-    }
+    this.setAltMode('default');
+    this.hideAltDropdown();
+    this.hideAltHelpPopover();
     this.revokePreviewUrl();
     if (this.previewImage) {
       this.previewImage.removeAttribute('src');
@@ -703,10 +591,12 @@ result.download('optimized.webp');</code></pre>
       this.batchFileList.innerHTML = '';
     }
     if (this.previewInfo) this.previewInfo.innerHTML = '';
-    if (this.downloadBtn) this.downloadBtn.hidden = true;
-    this.hideError();
+    if (this.downloadBtn) {
+      this.downloadBtn.disabled = true;
+      this.downloadBtn.textContent = 'Download';
+    }
     this.clearLogs();
-    this.hideLoading();
+    this.setProcessing(false);
     this.processedBlob = null;
     this.batchOutputs = null;
     this.batchOutputMeta = [];
@@ -716,67 +606,6 @@ result.download('optimized.webp');</code></pre>
     this.currentFiles = [];
     if (this.fileInput) this.fileInput.value = '';
     this.hideIntroError();
-  }
-
-  private clampHelpToViewport() {
-    const el = this.helpDialog;
-    if (!el || el.hidden) return;
-    const pad = 8;
-    const rect = el.getBoundingClientRect();
-    let nextLeft = rect.left;
-    let nextTop = rect.top;
-    if (rect.left < pad) nextLeft = pad;
-    if (rect.top < pad) nextTop = pad;
-    if (rect.right > window.innerWidth - pad) {
-      nextLeft = Math.max(pad, window.innerWidth - pad - rect.width);
-    }
-    if (rect.bottom > window.innerHeight - pad) {
-      nextTop = Math.max(pad, window.innerHeight - pad - rect.height);
-    }
-    el.style.left = `${nextLeft}px`;
-    el.style.top = `${nextTop}px`;
-  }
-
-  private openHelpDialog() {
-    if (!this.helpDialog) return;
-    if (this.helpDialog.parentElement !== document.body) {
-      document.body.appendChild(this.helpDialog);
-    }
-    this.helpDialog.hidden = false;
-    this.helpDialog.style.position = 'fixed';
-    ImageBitsElement.dialogZ += 1;
-    this.helpDialog.style.zIndex = String(ImageBitsElement.dialogZ);
-    void this.helpDialog.offsetHeight;
-    const rect = this.helpDialog.getBoundingClientRect();
-    const left = Math.max(8, (window.innerWidth - rect.width) / 2);
-    const top = Math.max(8, (window.innerHeight - rect.height) / 2);
-    this.helpDialog.style.left = `${left}px`;
-    this.helpDialog.style.top = `${top}px`;
-    this.clampHelpToViewport();
-    this.setupHelpDialogDrag();
-    attachFixedWindowResize(this.helpDialog, {
-      clamp: () => this.clampHelpToViewport(),
-      minWidth: 360,
-      minHeight: 220,
-    });
-    this.helpDialog.addEventListener('mousedown', this.raiseDialogZBound);
-    window.addEventListener('resize', this.onHelpResizeBound);
-  }
-
-  private closeHelpDialog() {
-    if (!this.helpDialog) return;
-    window.removeEventListener('resize', this.onHelpResizeBound);
-    this.helpDialog.removeEventListener('mousedown', this.raiseDialogZBound);
-    this.teardownHelpDialogDrag();
-    this.helpDialog.hidden = true;
-    this.helpDialog.style.position = '';
-    this.helpDialog.style.left = '';
-    this.helpDialog.style.top = '';
-    this.helpDialog.style.zIndex = '';
-    const shell = this.querySelector('.imagebits-shell');
-    if (shell && this.helpDialog.parentElement === document.body) {
-      shell.appendChild(this.helpDialog);
-    }
   }
 
   private getOptionsFromWorkshop(): ImageBitsOptions {
@@ -832,10 +661,7 @@ result.download('optimized.webp');</code></pre>
         status: 'error',
         warning: detail,
       };
-      if (this.logs) {
-        this.logs.innerHTML = `<div class="log-entry">✗ Alt text failed for ${this.escapeHtml(this.currentFiles[index].name)}: ${this.escapeHtml(uiMessage)}</div>`;
-        this.logs.classList.add('active');
-      }
+      this.writeLog(`<div class="log-entry">✗ Alt text failed for ${this.escapeHtml(this.currentFiles[index].name)}: ${this.escapeHtml(uiMessage)}</div>`, true);
     }
     this.renderBatchFileListPending();
   }
@@ -850,13 +676,98 @@ result.download('optimized.webp');</code></pre>
     return 'Local alt-text generation failed. Check console for details.';
   }
 
-  private async generateAltTextForAll() {
-    if (this.currentFiles.length === 0) return;
-    const modelChoice = this.resolveAltModelChoice();
-    if (modelChoice === null) return;
-    for (let i = 0; i < this.currentFiles.length; i++) {
-      await this.generateAltTextForIndexWithModel(i, modelChoice.model);
+  private async generateAltTextForAllDefaultModel() {
+    await this.runAltTextForAll({}, this.generateAltMainBtn);
+  }
+
+  private async generateAltTextForAllCustomModel() {
+    const raw = (this.altModelInput?.value ?? '').trim();
+    if (!raw) {
+      this.writeLog('<div class="log-entry">✗ Enter a model name/id before custom generation.</div>', true);
+      return;
     }
+    const model = this.normalizeAltModelSpec(raw);
+    if (!model) {
+      this.writeLog(
+        '<div class="log-entry">✗ Invalid model. Use "org/model" or a Hugging Face model URL.</div>',
+        true,
+      );
+      return;
+    }
+    await this.runAltTextForAll({ model }, this.generateAltMainBtn);
+  }
+
+  private async runAltTextForAll(modelChoice: { model?: string }, sourceButton: HTMLButtonElement | null) {
+    if (this.currentFiles.length === 0 || !sourceButton) return;
+    if (this.altAllGenerating) {
+      this.altAllStopRequested = true;
+      if (this.activeAltAllButton) this.activeAltAllButton.textContent = 'Stopping...';
+      return;
+    }
+    this.altAllGenerating = true;
+    this.altAllStopRequested = false;
+    this.activeAltAllButton = sourceButton;
+    sourceButton.classList.add('is-active');
+    sourceButton.textContent = 'Generating - click again to stop';
+    try {
+      for (let i = 0; i < this.currentFiles.length; i++) {
+        if (this.altAllStopRequested) break;
+        await this.generateAltTextForIndexWithModel(i, modelChoice.model);
+      }
+    } finally {
+      this.altAllGenerating = false;
+      this.altAllStopRequested = false;
+      if (this.generateAltMainBtn) {
+        this.generateAltMainBtn.classList.remove('is-active');
+        this.generateAltMainBtn.textContent = this.currentAltMode === 'default' ? 'Generate Alt Text (All)' : 'Generate Alt Text (Custom Model)';
+      }
+      this.activeAltAllButton = null;
+    }
+  }
+
+  private setAltMode(mode: 'default' | 'custom') {
+    this.currentAltMode = mode;
+    if (this.generateAltMainBtn) {
+      this.generateAltMainBtn.textContent = mode === 'default' ? 'Generate Alt Text (All)' : 'Generate Alt Text (Custom Model)';
+    }
+    if (this.customAltActions) {
+      this.customAltActions.hidden = mode === 'default';
+      if (mode === 'custom') {
+        this.altModelInput?.focus();
+      }
+    }
+  }
+
+  private toggleAltDropdown() {
+    if (!this.generateAltDropdown || !this.generateAltCaretBtn) return;
+    if (this.generateAltDropdown.hidden) {
+      this.generateAltDropdown.hidden = false;
+      this.generateAltCaretBtn.setAttribute('aria-expanded', 'true');
+      return;
+    }
+    this.hideAltDropdown();
+  }
+
+  private hideAltDropdown() {
+    if (!this.generateAltDropdown || !this.generateAltCaretBtn) return;
+    this.generateAltDropdown.hidden = true;
+    this.generateAltCaretBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  private toggleAltHelpPopover() {
+    if (!this.altHelpPopover || !this.altHelpTrigger) return;
+    if (this.altHelpPopover.hidden) {
+      this.altHelpPopover.hidden = false;
+      this.altHelpTrigger.setAttribute('aria-expanded', 'true');
+      return;
+    }
+    this.hideAltHelpPopover();
+  }
+
+  private hideAltHelpPopover() {
+    if (!this.altHelpPopover || !this.altHelpTrigger) return;
+    this.altHelpPopover.hidden = true;
+    this.altHelpTrigger.setAttribute('aria-expanded', 'false');
   }
 
   private async generateAltTextForIndexWithModel(index: number, model?: string) {
@@ -879,10 +790,7 @@ result.download('optimized.webp');</code></pre>
         status: 'error',
         warning: detail,
       };
-      if (this.logs) {
-        this.logs.innerHTML = `<div class="log-entry">✗ Alt text failed for ${this.escapeHtml(this.currentFiles[index].name)}: ${this.escapeHtml(uiMessage)}</div>`;
-        this.logs.classList.add('active');
-      }
+      this.writeLog(`<div class="log-entry">✗ Alt text failed for ${this.escapeHtml(this.currentFiles[index].name)}: ${this.escapeHtml(uiMessage)}</div>`, true);
     }
     this.renderBatchFileListPending();
   }
@@ -892,11 +800,10 @@ result.download('optimized.webp');</code></pre>
     if (!raw) return {};
     const model = this.normalizeAltModelSpec(raw);
     if (model) return { model };
-    if (this.logs) {
-      this.logs.innerHTML =
-        '<div class="log-entry">✗ Invalid alt model. Use "org/model" or a Hugging Face model URL.</div>';
-      this.logs.classList.add('active');
-    }
+    this.writeLog(
+      '<div class="log-entry">✗ Invalid alt model. Use "org/model" or a Hugging Face model URL.</div>',
+      true,
+    );
     return null;
   }
 
@@ -976,13 +883,14 @@ result.download('optimized.webp');</code></pre>
   private async runProcessAll() {
     if (this.currentFiles.length === 0) return;
 
-    this.showLoading();
-    this.hideError();
+    this.convertStopRequested = false;
+    this.setProcessing(true);
+    this.clearLogs();
     this.processedBlob = null;
     this.batchOutputs = null;
     this.batchOutputMeta = [];
     this.altManifest = null;
-    if (this.downloadBtn) this.downloadBtn.hidden = true;
+    if (this.downloadBtn) this.downloadBtn.disabled = true;
 
     const root = this.workshop;
     if (!root) return;
@@ -993,7 +901,6 @@ result.download('optimized.webp');</code></pre>
 
     try {
       if (total === 1) {
-        this.setLoadingMessage('Processing…');
         const result = await processImage(this.currentFiles[0], optionsBase);
         this.processedBlob = result.blob;
         const outName = this.outputFilename(this.currentFiles[0], formatSelect);
@@ -1032,14 +939,12 @@ result.download('optimized.webp');</code></pre>
         `;
         }
         this.batchOutputs = [{ zipName: outName, blob: this.processedBlob }];
+        this.setBatchRowStatus(0, this.formatBytes(result.metadata.size), true);
 
-        if (this.logs) {
-          this.logs.innerHTML = `<div class="log-entry">✓ Image converted</div>`;
-          this.logs.classList.add('active');
-        }
+        this.writeLog(`<div class="log-entry">✓ Image converted</div>`);
 
         if (this.downloadBtn) {
-          this.downloadBtn.hidden = false;
+          this.downloadBtn.disabled = false;
           this.downloadBtn.textContent = 'Download';
         }
       } else {
@@ -1052,7 +957,8 @@ result.download('optimized.webp');</code></pre>
         let totalOut = 0;
 
         for (let i = 0; i < this.currentFiles.length; i++) {
-          this.setLoadingMessage(`Converting ${i + 1} / ${total}…`);
+          if (this.convertStopRequested) break;
+          this.setProcessing(true, `Converting ${i + 1} / ${total}…`);
           try {
             const result = await processImage(this.currentFiles[i], optionsBase);
             outputs.push({ zipName: zipNames[i], blob: result.blob });
@@ -1086,27 +992,18 @@ result.download('optimized.webp');</code></pre>
         `;
         }
 
-        if (this.logs) {
-          this.logs.innerHTML = `<div class="log-entry">✓ Converted ${total} images — ready to download ZIP</div>`;
-          this.logs.classList.add('active');
-        }
+        this.writeLog(`<div class="log-entry">✓ Converted ${total} images — ready to download ZIP</div>`);
 
         if (this.downloadBtn) {
-          this.downloadBtn.hidden = false;
+          this.downloadBtn.disabled = false;
           this.downloadBtn.textContent = 'Download ZIP';
         }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      this.showError(errorMessage);
+      this.writeLog(`<div class="log-entry">✗ ${this.escapeHtml(errorMessage)}</div>`, true);
     } finally {
-      this.hideLoading();
-    }
-  }
-
-  private setLoadingMessage(text: string) {
-    if (this.loading) {
-      this.loading.textContent = text;
+      this.setProcessing(false);
     }
   }
 
@@ -1150,37 +1047,28 @@ result.download('optimized.webp');</code></pre>
     })();
   }
 
-  private showLoading() {
-    this.loading?.classList.add('active');
-    this.setLoadingMessage('Processing…');
-    if (this.processButton) {
-      this.processButton.disabled = true;
+  private setProcessing(active: boolean, message?: string) {
+    if (!this.processButton) return;
+    this.processButton.disabled = active;
+    if (active) {
+      this.processButton.textContent = message ?? 'Processing…';
+    } else {
+      this.syncProcessButtonLabel();
     }
   }
 
-  private hideLoading() {
-    this.loading?.classList.remove('active');
-    this.setLoadingMessage('Processing…');
-    if (this.processButton) {
-      this.processButton.disabled = false;
-    }
-  }
-
-  private showError(message: string) {
-    if (this.error) {
-      this.error.textContent = message;
-      this.error.classList.add('active');
-    }
-  }
-
-  private hideError() {
-    this.error?.classList.remove('active');
+  private writeLog(html: string, isError = false) {
+    if (!this.logs) return;
+    this.logs.innerHTML = html;
+    this.logs.classList.add('active');
+    this.logs.classList.toggle('is-error', isError);
   }
 
   private clearLogs() {
     if (this.logs) {
       this.logs.innerHTML = '';
       this.logs.classList.remove('active');
+      this.logs.classList.remove('is-error');
     }
   }
 

@@ -13,7 +13,7 @@ export default defineConfig([
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['@oddbits/core', '@huggingface/transformers'],
+    external: ['@oddbits/core', '@huggingface/transformers', 'sharp', 'fflate'],
   },
   {
     entry: { cli: 'src/cli.ts' },
@@ -27,7 +27,7 @@ export default defineConfig([
     platform: 'node',
     target: 'node18',
     banner: { js: '#!/usr/bin/env node\n' },
-    external: ['sharp', '@huggingface/transformers'],
+    external: ['sharp', '@huggingface/transformers', 'fflate', '@oddbits/core'],
   },
 ]);
 

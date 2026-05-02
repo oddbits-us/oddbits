@@ -1,129 +1,100 @@
 /**
- * @oddbits/imagebits
- * Image processing tools: resize, optimize, and convert formats
- * 
- * Simple API for easy integration into workflows, CMS, etc.
+ * @oddbits/imagebits — Node entry
+ *
+ * Public API for Node consumers (build scripts, CMS workers, CLIs, server-side
+ * processors). Backed by sharp.
+ *
+ * Browser consumers receive `src/browser.ts` automatically via the `browser`
+ * field in package.json. Both entries expose the same names so calling code
+ * is portable.
  */
 
-import type { BitPlugin, BitInput, BitOutput } from '@oddbits/core';
+import type { BitInput, BitOutput, BitPlugin } from '@oddbits/core';
+
+import {
+  type NodeImageInput,
+  processImageNode,
+  processImagesNode,
+} from './process-core-node';
 import type { ImageBitsOptions, ImageBitsResult } from './types';
-import { processImage as processImageCore } from './process-core';
+import { VERSION } from './version';
+
+export { VERSION } from './version';
 export {
   buildAltTextManifest,
   generateLocalAltTextFromBlob,
   generateLocalAltTextFromPath,
   stringifyAltTextManifest,
 } from './alt-text';
+export * from './types';
+export type { NodeImageInput } from './process-core-node';
+export { nodeFormatHelpers } from './process-core-node';
 
 /**
- * Process an image with simple parameters
- * 
- * @param input - Image file, Blob, ArrayBuffer, or URL string
- * @param options - Processing options
- * @returns Processed image result
- * 
+ * Process a single image. Accepts a file path, URL, Buffer, Uint8Array,
+ * ArrayBuffer, Blob, or File.
+ *
  * @example
- * ```typescript
- * // Simple resize and convert
- * const result = await processImage(file, {
- *   maxDimension: 800,
+ * ```ts
+ * import fs from 'node:fs';
+ * import { processImage } from '@oddbits/imagebits';
+ *
+ * const result = await processImage('./photo.png', {
+ *   maxDimension: 1200,
  *   format: 'webp',
- *   quality: 0.9
+ *   quality: 0.9,
  * });
- * 
- * // Use the result
- * const url = await result.toDataURL();
- * // or
- * result.download('processed.webp');
+ * fs.writeFileSync('./photo.webp', Buffer.from(await result.toArrayBuffer()));
  * ```
  */
 export async function processImage(
-  input: File | Blob | ArrayBuffer | string,
-  options: ImageBitsOptions = {}
+  input: NodeImageInput,
+  options: ImageBitsOptions = {},
 ): Promise<ImageBitsResult> {
-  const { maxDimension, format, quality = 0.92 } = options;
-
-  // Convert input to BitInput format
-  let bitInput: { type: 'file' | 'url' | 'buffer'; data: File | string | ArrayBuffer };
-  
-  if (input instanceof File) {
-    bitInput = { type: 'file', data: input };
-  } else if (input instanceof Blob) {
-    // Convert Blob to File - create a File from Blob
-    const file = new File([input], 'image', { type: input.type || 'image/png' });
-    bitInput = { type: 'file', data: file };
-  } else if (input instanceof ArrayBuffer) {
-    bitInput = { type: 'buffer', data: input };
-  } else if (typeof input === 'string') {
-    bitInput = { type: 'url', data: input };
-  } else {
-    throw new Error('Invalid input type. Expected File, Blob, ArrayBuffer, or URL string.');
-  }
-
-  // Process the image
-  const result = await processImageCore(bitInput, { maxDimension, format, quality });
-
-  const blob = result.data as Blob;
-  const metadata = result.metadata as any;
-
-  // Return result with helper methods
-  return {
-    blob,
-    metadata,
-    
-    async toDataURL(): Promise<string> {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    },
-    
-    async toArrayBuffer(): Promise<ArrayBuffer> {
-      return blob.arrayBuffer();
-    },
-    
-    download(filename?: string): void {
-      if (typeof window === 'undefined') {
-        throw new Error('Download is only available in browser environments');
-      }
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || `image.${metadata.format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    },
-  };
+  return processImageNode(input, options);
 }
 
-// Export types
-export * from './types';
+/**
+ * Process many images with the same options. Sequential by default; pass
+ * `{ concurrency: N }` to parallelize. Returns results in input order.
+ *
+ * @example
+ * ```ts
+ * const results = await processImages(['a.png', 'b.png', 'c.png'], {
+ *   maxDimension: 1080, format: 'webp', concurrency: 4,
+ * });
+ * ```
+ */
+export async function processImages(
+  inputs: NodeImageInput[],
+  options: ImageBitsOptions & { concurrency?: number } = {},
+): Promise<ImageBitsResult[]> {
+  return processImagesNode(inputs, options);
+}
 
-// BitPlugin interface (for internal use with oddbits ecosystem)
+/**
+ * `BitPlugin` interface (used by the `@oddbits/core` plugin registry). Works
+ * in both Node and browser; this entry uses the Node sharp pipeline.
+ */
 export const imageBits: BitPlugin = {
   name: 'imagebits',
-  version: '0.1.0',
-  description: 'Image processing: resize, optimize, and convert formats (webp, avif, png, jpg)',
+  version: VERSION,
+  description:
+    'Image processing: resize, optimize, and convert formats (webp, avif, png, jpg)',
 
-  async process(input: BitInput, options?: any): Promise<BitOutput> {
-    // Convert BitInput to simple input format
-    let simpleInput: File | Blob | ArrayBuffer | string;
+  async process(input: BitInput, options?: ImageBitsOptions): Promise<BitOutput> {
+    let nodeInput: NodeImageInput;
     if (input.type === 'file') {
-      simpleInput = input.data as File;
+      nodeInput = input.data as Blob | File;
     } else if (input.type === 'buffer') {
-      simpleInput = input.data as ArrayBuffer;
+      nodeInput = input.data as ArrayBuffer;
     } else if (input.type === 'url') {
-      simpleInput = input.data as string;
+      nodeInput = input.data as string;
     } else {
-      throw new Error('Invalid input type');
+      throw new Error(`Unsupported input type for imagebits Node plugin: ${input.type}`);
     }
 
-    const result = await processImage(simpleInput, options);
+    const result = await processImageNode(nodeInput, options ?? {});
     return {
       data: result.blob,
       metadata: result.metadata,
@@ -131,9 +102,6 @@ export const imageBits: BitPlugin = {
   },
 };
 
-// Auto-register if in browser context (for oddbits website)
-if (typeof window !== 'undefined') {
-  import('@oddbits/core').then(({ registerBit }) => {
-    registerBit(imageBits);
-  });
-}
+// Note: no `if (typeof window !== 'undefined')` auto-register here; the Node
+// entry is for server-side use. The browser entry handles registration with
+// the BitRegistry on its own.

@@ -78,7 +78,7 @@
       </div>
       <div class="window-content anime-header">
         <h1>Oddbits</h1>
-        <p>An odd collection of useful web tools</p>
+        <p>An odd collection of useful web bits.</p>
         <div class="hero-copy">
           <p>Oddbits is open source and free. Our goal is to build useful tools you can run in the browser, use from the CLI, or plug into your own projects one bit at a time.</p>
         </div>
@@ -88,9 +88,9 @@
     <!-- Tools Window -->
     <div id="window-imagebits" class="window draggable pop-cyan window-size-default" style="top: 20%; left: 40%; z-index: 15;">
       <div class="window-titlebar">
-        <span class="window-title-text"><span class="window-title-icon">🖼️</span>ImageBits_v1.0.exe</span>
+        <span class="window-title-text"><span class="window-title-icon">🖼️</span>ImageBits_v<span data-bit-version>0.0.0</span></span>
         <div class="window-controls">
-          <button class="window-btn imagebits-help-launch" type="button" title="ImageBits help" aria-label="Open ImageBits help">?</button>
+          <button class="window-btn imagebits-help-launch bit-help-launch" type="button" title="ImageBits help" aria-label="Open ImageBits help">?</button>
           <button class="window-btn">_</button>
           <button class="window-btn">X</button>
         </div>
@@ -98,17 +98,17 @@
       <div class="window-content anime-section">
         <div class="bit-intro anime-item">
           <h3>ImageBits</h3>
-          <p>Simple bulk convert to webp, avif, png, and jpg.</p>
+          <p>Simple bulk convert to webp, avif, png, and jpg. Also generate alt text with local models.</p>
         </div>
 
         <div class="bit-browser-section anime-item">
-          <h4>Use it in your browser</h4>
+          <h4>Try it in your browser!</h4>
           <odd-imagebits></odd-imagebits>
         </div>
 
         <div class="bit-actions anime-item">
-          <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/imagebits/README.md" target="_blank" rel="noopener noreferrer" class="win-link-btn">Source</a>
-          <button type="button" class="win-link-btn imagebits-help-launch">How To</button>
+          <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/imagebits/README.md" target="_blank" rel="noopener noreferrer" class="win-link-btn btn-secondary">Github source</a>
+          <button type="button" class="win-link-btn imagebits-help-launch bit-help-launch">Use in your project</button>
         </div>
       </div>
     </div>
@@ -116,25 +116,29 @@
     <!-- Docs Window -->
     <div id="window-docs" class="window draggable window-size-default" style="top: 50%; left: 20%; transform: rotate(1deg); z-index: 10;">
       <div class="window-titlebar">
-        <span class="window-title-text"><span class="window-title-icon">📝</span>readme.txt - Notepad</span>
+        <span class="window-title-text"><span class="window-title-icon">📝</span>Readme.md</span>
         <div class="window-controls">
           <button class="window-btn">_</button>
           <button class="window-btn">X</button>
         </div>
       </div>
       <div class="window-content anime-section">
-        <h2>How to Use in Your Project</h2>
+        <h2>Readme</h2>
         <div class="docs-section anime-item">
-          <h3>Install</h3>
-          <pre><code>npm install @oddbits/&lt;bit-name&gt;</code></pre>
+          <p>Oddbits is an open source collection of small tools (<em>bits</em>) you can use three ways:</p>
+          <ul>
+            <li><strong>In the browser</strong> — try any bit right here on this desktop.</li>
+            <li><strong>From the CLI</strong> — <code>npx @oddbits/&lt;bit&gt; --help</code></li>
+            <li><strong>In your code</strong> — <code>npm install @oddbits/&lt;bit&gt;</code></li>
+          </ul>
+          <p>Same API surface across browser and Node — bundlers pick the right build automatically.</p>
         </div>
-        
+
         <div class="docs-section anime-item">
-          <h3>Use</h3>
-          <pre><code>import { someUtility } from '@oddbits/&lt;bit-name&gt;';
-const result = await someUtility(input, options);</code></pre>
-          <pre><code>npx @oddbits/&lt;bit-name&gt; --help</code></pre>
-          <p>Use <strong>Source</strong> and <strong>How To</strong> in each bit window for exact options.</p>
+          <p>Each bit window has a <strong>Use in your project</strong> button with a quick example. For full docs, install instructions, and source, head to GitHub.</p>
+          <p>
+            <a href="https://github.com/oddbits-us/oddbits" target="_blank" rel="noopener noreferrer" class="win-link-btn btn-secondary">github.com/oddbits-us/oddbits</a>
+          </p>
         </div>
       </div>
     </div>
@@ -172,7 +176,7 @@ const result = await someUtility(input, options);</code></pre>
         </div>
       </div>
       <div class="window-content" style="text-align: center;">
-        <p>Made with <span class="heart">❤</span> by <a href="https://github.com/dainbrain" target="_blank" rel="noopener noreferrer" class="win-link-btn win-link-btn-inline">@dainbrain</a></p>
+        <p>Made with <span class="heart">❤</span> by <a href="https://github.com/dainbrain" target="_blank" rel="noopener noreferrer" class="win-link-btn win-link-btn-inline btn-secondary">@dainbrain</a></p>
       </div>
     </div>
   </div>
