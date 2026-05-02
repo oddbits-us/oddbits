@@ -7,7 +7,15 @@ import './components/imagebits'
 import anime from 'animejs'
 import { attachTransformWindowResize } from './windowResize'
 
+// Vite injects this from the root package.json at build time; see vite.config.ts.
+declare const __ODDBITS_VERSION__: string;
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Fill any [data-oddbits-version] slots (e.g. the <sup> in the hero h1).
+  document.querySelectorAll<HTMLElement>('[data-oddbits-version]').forEach((el) => {
+    el.textContent = `v${__ODDBITS_VERSION__}`;
+  });
+
   // Parallax scroll effect
   const bgDistant = document.querySelector('.bg-layer.distant') as HTMLElement;
   const bgGrid = document.querySelector('.bg-layer.grid') as HTMLElement;
