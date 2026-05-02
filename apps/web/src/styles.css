@@ -710,6 +710,15 @@ odd-imagebits .drop-zone-text strong {
   color: var(--color-accent);
 }
 
+odd-imagebits .imagebits-intro-error {
+  color: #ff8e9a;
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 2px solid var(--color-error);
+  background: rgba(0, 0, 0, 0.35);
+}
+
 /* ImageBits process UI: floating dialog window (no dimming overlay), portaled to document.body — see imagebits.ts */
 .window.imagebits-dialog-window.imagebits-workshop-portal.imagebits-workshop {
   position: fixed;
@@ -747,6 +756,54 @@ odd-imagebits .drop-zone-text strong {
   align-items: center;
   justify-content: center;
   box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.6), inset -2px -2px 0 rgba(255, 255, 255, 0.06);
+}
+
+.imagebits-workshop-portal .imagebits-batch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  align-self: stretch;
+  max-height: min(52vh, 480px);
+  overflow-y: auto;
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: 0.8rem;
+}
+
+.imagebits-workshop-portal .imagebits-batch-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.imagebits-workshop-portal .imagebits-batch-item:last-child {
+  border-bottom: none;
+}
+
+.imagebits-workshop-portal .imagebits-batch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.imagebits-workshop-portal .imagebits-batch-status {
+  flex-shrink: 0;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.imagebits-workshop-portal .imagebits-batch-status.imagebits-batch-ok {
+  color: var(--color-success);
+}
+
+.imagebits-workshop-portal .imagebits-batch-status.imagebits-batch-err {
+  color: #ff8e9a;
 }
 
 .imagebits-workshop-portal .preview-image {

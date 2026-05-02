@@ -26,6 +26,9 @@ importers:
       animejs:
         specifier: ^3.2.2
         version: 3.2.2
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.2
     devDependencies:
       '@types/animejs':
         specifier: ^3.1.12
@@ -847,6 +850,10 @@ packages:
     dependencies:
       picomatch: 4.0.3
     dev: true
+
+  /fflate@0.8.2:
+    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
+    dev: false
 
   /fix-dts-default-cjs-exports@1.0.1:
     resolution: {integrity: sha512-pVIECanWFC61Hzl2+oOCtoJ3F17kglZC/6N94eRWycFgBH35hHx0Li604ZIzhseh97mf2p0cv7vVrOZGoqhlEg==}

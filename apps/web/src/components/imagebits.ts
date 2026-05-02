@@ -8,6 +8,7 @@
 
 import { processImage, imageBits } from '@oddbits/imagebits';
 import type { ImageBitsOptions } from '@oddbits/imagebits';
+import { zipSync } from 'fflate';
 
 export class ImageBitsElement extends HTMLElement {
   /** Stacking order above desktop `.window` instances (those use ~100+). */
@@ -16,17 +17,22 @@ export class ImageBitsElement extends HTMLElement {
   private titlebarMousedown: ((e: MouseEvent) => void) | undefined;
 
   private fileInput: HTMLInputElement | null = null;
+  private shell: HTMLElement | null = null;
   private dropZone: HTMLElement | null = null;
+  private introError: HTMLElement | null = null;
   private workshop: HTMLElement | null = null;
   private previewImage: HTMLImageElement | null = null;
+  private batchFileList: HTMLElement | null = null;
   private previewInfo: HTMLElement | null = null;
   private processButton: HTMLButtonElement | null = null;
   private downloadBtn: HTMLButtonElement | null = null;
   private logs: HTMLElement | null = null;
   private loading: HTMLElement | null = null;
   private error: HTMLElement | null = null;
-  private currentFile: File | null = null;
+  private currentFiles: File[] = [];
   private processedBlob: Blob | null = null;
+  /** After batch process: maps zip-safe filenames to blobs. */
+  private batchOutputs: { zipName: string; blob: Blob }[] | null = null;
   private previewObjectUrl: string | null = null;
   private onEscapeBound = (e: KeyboardEvent) => this.onEscape(e);
   private onResizeBound = () => this.clampDialogToViewport();
@@ -47,6 +53,8 @@ export class ImageBitsElement extends HTMLElement {
               <div class="tool-description">${imageBits.description}</div>
             </div>
           </div>
+
+          <div class="imagebits-intro-error" id="imagebits-intro-error" hidden></div>
 
           <div class="drop-zone" id="drop-zone">
             <input type="file" id="file-input" accept="image/*" multiple>
@@ -75,6 +83,7 @@ export class ImageBitsElement extends HTMLElement {
               <div class="imagebits-col imagebits-col-preview">
                 <div class="preview-stage">
                   <img class="preview-image" id="preview-image" alt="Preview">
+                  <ul class="imagebits-batch-list" id="batch-file-list" hidden></ul>
                 </div>
                 <div class="preview-info" id="preview-info"></div>
               </div>
@@ -107,9 +116,9 @@ export class ImageBitsElement extends HTMLElement {
                 </div>
 
                 <div class="imagebits-actions">
-                  <button type="button" id="process-btn">Process Image</button>
+                  <button type="button" id="process-btn">Convert</button>
                   <button type="button" id="download-btn" class="imagebits-download" hidden>Download</button>
-                  <button type="button" class="imagebits-change-file">Different image…</button>
+                  <button type="button" class="imagebits-change-file">Different images…</button>
                 </div>
 
                 <div class="loading" id="loading">Processing…</div>
@@ -157,10 +166,13 @@ export class ImageBitsElement extends HTMLElement {
   }
 
   private initializeElements() {
+    this.shell = this.querySelector('.imagebits-shell');
     this.fileInput = this.querySelector('#file-input') as HTMLInputElement;
     this.dropZone = this.querySelector('#drop-zone') as HTMLElement;
+    this.introError = this.querySelector('#imagebits-intro-error') as HTMLElement;
     this.workshop = this.querySelector('#imagebits-workshop') as HTMLElement;
     this.previewImage = this.querySelector('#preview-image') as HTMLImageElement;
+    this.batchFileList = this.querySelector('#batch-file-list') as HTMLElement;
     this.previewInfo = this.querySelector('#preview-info') as HTMLElement;
     this.processButton = this.querySelector('#process-btn') as HTMLButtonElement;
     this.downloadBtn = this.querySelector('#download-btn') as HTMLButtonElement;
@@ -187,7 +199,7 @@ export class ImageBitsElement extends HTMLElement {
       this.fileInput.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files.length > 0) {
-          this.handleFile(target.files[0]);
+          this.handleFiles(target.files);
         }
       });
     }
@@ -196,35 +208,46 @@ export class ImageBitsElement extends HTMLElement {
       this.dropZone.addEventListener('click', () => {
         this.fileInput?.click();
       });
+    }
 
-      this.dropZone.addEventListener('dragover', (e) => {
+    const shell = this.shell;
+    if (shell) {
+      shell.addEventListener('dragover', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         this.dropZone?.classList.add('dragover');
       });
 
-      this.dropZone.addEventListener('dragleave', () => {
-        this.dropZone?.classList.remove('dragover');
+      shell.addEventListener('dragleave', (e) => {
+        if (!shell.contains(e.relatedTarget as Node)) {
+          this.dropZone?.classList.remove('dragover');
+        }
       });
 
-      this.dropZone.addEventListener('drop', (e) => {
+      shell.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         this.dropZone?.classList.remove('dragover');
         const files = e.dataTransfer?.files;
         if (files && files.length > 0) {
-          this.handleFile(files[0]);
+          this.handleFiles(files);
         }
       });
     }
 
     if (this.processButton) {
       this.processButton.addEventListener('click', () => {
-        this.runProcessImage();
+        void this.runProcessAll();
       });
     }
 
     if (this.downloadBtn) {
       this.downloadBtn.addEventListener('click', () => {
-        this.downloadImage();
+        if (this.currentFiles.length > 1) {
+          this.downloadZip();
+        } else {
+          this.downloadSingle();
+        }
       });
     }
 
@@ -240,7 +263,113 @@ export class ImageBitsElement extends HTMLElement {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => this.closeWorkshop());
     }
+  }
 
+  private hideIntroError() {
+    if (this.introError) {
+      this.introError.hidden = true;
+      this.introError.textContent = '';
+    }
+  }
+
+  private showIntroError(message: string) {
+    if (this.introError) {
+      this.introError.textContent = message;
+      this.introError.hidden = false;
+    }
+  }
+
+  private collectImageFiles(fileList: FileList | File[]): File[] {
+    return [...fileList].filter((f) => f.type.startsWith('image/'));
+  }
+
+  private handleFiles(fileList: FileList | File[]) {
+    this.hideIntroError();
+    const images = this.collectImageFiles(fileList);
+    if (images.length === 0) {
+      this.showIntroError('No image files found. Drop PNG, JPEG, WebP, or AVIF files.');
+      return;
+    }
+
+    this.currentFiles = images;
+    this.hideError();
+    this.processedBlob = null;
+    this.batchOutputs = null;
+    if (this.downloadBtn) this.downloadBtn.hidden = true;
+    this.clearLogs();
+
+    this.revokePreviewUrl();
+    this.updateWorkshopTitle();
+
+    if (images.length === 1) {
+      const file = images[0];
+      const url = URL.createObjectURL(file);
+      this.previewObjectUrl = url;
+      if (this.previewImage) {
+        this.previewImage.hidden = false;
+        this.previewImage.src = url;
+      }
+      if (this.batchFileList) {
+        this.batchFileList.hidden = true;
+        this.batchFileList.innerHTML = '';
+      }
+    } else {
+      if (this.previewImage) {
+        this.previewImage.hidden = true;
+        this.previewImage.removeAttribute('src');
+      }
+      this.renderBatchFileListPending();
+    }
+
+    if (this.previewInfo) {
+      this.previewInfo.innerHTML = '';
+    }
+
+    this.syncProcessButtonLabel();
+    this.openWorkshop();
+  }
+
+  private updateWorkshopTitle() {
+    const title = this.workshop?.querySelector('#imagebits-workshop-title');
+    if (!title) return;
+    const n = this.currentFiles.length;
+    title.textContent =
+      n > 1 ? `ImageBits — ${n} images (client-side)` : 'ImageBits — Process';
+  }
+
+  private syncProcessButtonLabel() {
+    if (!this.processButton) return;
+    const n = this.currentFiles.length;
+    this.processButton.textContent = n > 1 ? `Convert all (${n})` : 'Convert';
+  }
+
+  private renderBatchFileListPending() {
+    if (!this.batchFileList) return;
+    this.batchFileList.hidden = false;
+    this.batchFileList.innerHTML = this.currentFiles
+      .map(
+        (f, i) =>
+          `<li class="imagebits-batch-item" data-index="${i}"><span class="imagebits-batch-name">${this.escapeHtml(f.name)}</span><span class="imagebits-batch-status">Pending</span></li>`
+      )
+      .join('');
+  }
+
+  private escapeHtml(s: string): string {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  private setBatchRowStatus(index: number, text: string, ok: boolean) {
+    const li = this.batchFileList?.querySelector(`[data-index="${index}"]`);
+    const status = li?.querySelector('.imagebits-batch-status');
+    if (status) {
+      status.textContent = text;
+      status.classList.toggle('imagebits-batch-ok', ok);
+      status.classList.toggle('imagebits-batch-err', !ok);
+    }
   }
 
   private clampDialogToViewport() {
@@ -357,108 +486,182 @@ export class ImageBitsElement extends HTMLElement {
       shell.appendChild(this.workshop);
     }
     this.revokePreviewUrl();
-    if (this.previewImage) this.previewImage.removeAttribute('src');
+    if (this.previewImage) {
+      this.previewImage.removeAttribute('src');
+      this.previewImage.hidden = false;
+    }
+    if (this.batchFileList) {
+      this.batchFileList.hidden = true;
+      this.batchFileList.innerHTML = '';
+    }
     if (this.previewInfo) this.previewInfo.innerHTML = '';
     if (this.downloadBtn) this.downloadBtn.hidden = true;
     this.hideError();
     this.clearLogs();
     this.hideLoading();
     this.processedBlob = null;
-    this.currentFile = null;
+    this.batchOutputs = null;
+    this.currentFiles = [];
     if (this.fileInput) this.fileInput.value = '';
+    this.hideIntroError();
   }
 
-  private handleFile(file: File) {
-    if (!file.type.startsWith('image/')) {
-      this.showError('Please select an image file');
-      return;
+  private getOptionsFromWorkshop(): ImageBitsOptions {
+    const options: ImageBitsOptions = {};
+    const root = this.workshop;
+    if (!root) return options;
+
+    const maxDimensionInput = root.querySelector('#max-dimension') as HTMLInputElement;
+    const maxDimension = maxDimensionInput?.value ? parseInt(maxDimensionInput.value, 10) : undefined;
+    if (maxDimension) {
+      options.maxDimension = maxDimension;
     }
 
-    this.currentFile = file;
-    this.hideError();
-    this.processedBlob = null;
-    if (this.downloadBtn) this.downloadBtn.hidden = true;
-    this.clearLogs();
-
-    this.revokePreviewUrl();
-    const url = URL.createObjectURL(file);
-    this.previewObjectUrl = url;
-
-    if (this.previewImage) {
-      this.previewImage.src = url;
-    }
-    if (this.previewInfo) {
-      this.previewInfo.innerHTML = '';
+    const formatSelect = root.querySelector('#format') as HTMLSelectElement;
+    const format = formatSelect?.value;
+    if (format && format !== 'original') {
+      options.format = format as NonNullable<ImageBitsOptions['format']>;
     }
 
-    this.openWorkshop();
+    const qualityInput = root.querySelector('#quality') as HTMLInputElement;
+    const quality = qualityInput?.value ? parseInt(qualityInput.value, 10) / 100 : undefined;
+    if (quality) {
+      options.quality = quality;
+    }
+
+    return options;
   }
 
-  private async runProcessImage() {
-    if (!this.currentFile) return;
+  private outputFilename(file: File, formatSelect: HTMLSelectElement | null): string {
+    const format = formatSelect?.value;
+    const stem = file.name.replace(/\.[^/.]+$/, '');
+    const ext =
+      format && format !== 'original'
+        ? format
+        : file.name.includes('.')
+          ? (file.name.split('.').pop() ?? 'bin')
+          : 'bin';
+    return `${stem}.${ext}`;
+  }
+
+  private uniquifyZipNames(names: string[]): string[] {
+    const counts = new Map<string, number>();
+    return names.map((original) => {
+      const n = counts.get(original) ?? 0;
+      counts.set(original, n + 1);
+      if (n === 0) return original;
+      const dot = original.lastIndexOf('.');
+      const stem = dot > 0 ? original.slice(0, dot) : original;
+      const ext = dot > 0 ? original.slice(dot) : '';
+      return `${stem}_${n}${ext}`;
+    });
+  }
+
+  private async runProcessAll() {
+    if (this.currentFiles.length === 0) return;
 
     this.showLoading();
     this.hideError();
+    this.processedBlob = null;
+    this.batchOutputs = null;
+    if (this.downloadBtn) this.downloadBtn.hidden = true;
+
+    const root = this.workshop;
+    if (!root) return;
+
+    const formatSelect = root.querySelector('#format') as HTMLSelectElement;
+    const optionsBase = this.getOptionsFromWorkshop();
+    const total = this.currentFiles.length;
 
     try {
-      const options: ImageBitsOptions = {};
+      if (total === 1) {
+        this.setLoadingMessage('Processing…');
+        const result = await processImage(this.currentFiles[0], optionsBase);
+        this.processedBlob = result.blob;
 
-      const root = this.workshop;
-      if (!root) return;
+        if (this.previewImage && this.processedBlob) {
+          this.revokePreviewUrl();
+          const outUrl = URL.createObjectURL(this.processedBlob);
+          this.previewObjectUrl = outUrl;
+          this.previewImage.src = outUrl;
+        }
 
-      const maxDimensionInput = root.querySelector('#max-dimension') as HTMLInputElement;
-      const maxDimension = maxDimensionInput?.value ? parseInt(maxDimensionInput.value, 10) : undefined;
-      if (maxDimension) {
-        options.maxDimension = maxDimension;
-      }
+        if (this.previewInfo && result.metadata) {
+          const metadata = result.metadata;
+          const originalSize = metadata.originalSize
+            ? this.formatBytes(metadata.originalSize)
+            : 'N/A';
+          const newSize = this.formatBytes(metadata.size);
+          const savings = metadata.originalSize
+            ? `${((1 - metadata.size / metadata.originalSize) * 100).toFixed(1)}%`
+            : 'N/A';
 
-      const formatSelect = root.querySelector('#format') as HTMLSelectElement;
-      const format = formatSelect?.value;
-      if (format && format !== 'original') {
-        options.format = format as NonNullable<ImageBitsOptions['format']>;
-      }
-
-      const qualityInput = root.querySelector('#quality') as HTMLInputElement;
-      const quality = qualityInput?.value ? parseInt(qualityInput.value, 10) / 100 : undefined;
-      if (quality) {
-        options.quality = quality;
-      }
-
-      const result = await processImage(this.currentFile, options);
-      this.processedBlob = result.blob;
-
-      if (this.previewImage && this.processedBlob) {
-        this.revokePreviewUrl();
-        const outUrl = URL.createObjectURL(this.processedBlob);
-        this.previewObjectUrl = outUrl;
-        this.previewImage.src = outUrl;
-      }
-
-      if (this.previewInfo && result.metadata) {
-        const metadata = result.metadata;
-        const originalSize = metadata.originalSize
-          ? this.formatBytes(metadata.originalSize)
-          : 'N/A';
-        const newSize = this.formatBytes(metadata.size);
-        const savings = metadata.originalSize
-          ? `${((1 - metadata.size / metadata.originalSize) * 100).toFixed(1)}%`
-          : 'N/A';
-
-        this.previewInfo.innerHTML = `
+          this.previewInfo.innerHTML = `
           <div><strong>Dimensions:</strong> ${metadata.width} × ${metadata.height}</div>
           <div><strong>Format:</strong> ${metadata.format}</div>
           <div><strong>Original Size:</strong> ${originalSize}</div>
           <div><strong>New Size:</strong> ${newSize}</div>
           <div><strong>Savings:</strong> ${savings}</div>
         `;
-      }
+        }
 
-      if (this.logs) {
-        this.logs.innerHTML = `<div class="log-entry">✓ Image processed successfully</div>`;
-        this.logs.classList.add('active');
-      }
+        const outName = this.outputFilename(this.currentFiles[0], formatSelect);
+        this.batchOutputs = [{ zipName: outName, blob: this.processedBlob }];
 
-      if (this.downloadBtn) this.downloadBtn.hidden = false;
+        if (this.logs) {
+          this.logs.innerHTML = `<div class="log-entry">✓ Image converted</div>`;
+          this.logs.classList.add('active');
+        }
+
+        if (this.downloadBtn) {
+          this.downloadBtn.hidden = false;
+          this.downloadBtn.textContent = 'Download';
+        }
+      } else {
+        const rawNames = this.currentFiles.map((f) => this.outputFilename(f, formatSelect));
+        const zipNames = this.uniquifyZipNames(rawNames);
+        const outputs: { zipName: string; blob: Blob }[] = [];
+        let totalIn = 0;
+        let totalOut = 0;
+
+        for (let i = 0; i < this.currentFiles.length; i++) {
+          this.setLoadingMessage(`Converting ${i + 1} / ${total}…`);
+          try {
+            const result = await processImage(this.currentFiles[i], optionsBase);
+            outputs.push({ zipName: zipNames[i], blob: result.blob });
+            totalIn += result.metadata.originalSize ?? 0;
+            totalOut += result.metadata.size;
+            const rowSize = this.formatBytes(result.metadata.size);
+            this.setBatchRowStatus(i, rowSize, true);
+          } catch {
+            this.setBatchRowStatus(i, 'Failed', false);
+            throw new Error(`Failed on “${this.currentFiles[i].name}”`);
+          }
+        }
+
+        this.batchOutputs = outputs;
+
+        if (this.previewInfo) {
+          const saved =
+            totalIn > 0 ? `${((1 - totalOut / totalIn) * 100).toFixed(1)}%` : 'N/A';
+          this.previewInfo.innerHTML = `
+          <div><strong>Files:</strong> ${total}</div>
+          <div><strong>Total in:</strong> ${this.formatBytes(totalIn)}</div>
+          <div><strong>Total out:</strong> ${this.formatBytes(totalOut)}</div>
+          <div><strong>Savings (approx.):</strong> ${saved}</div>
+        `;
+        }
+
+        if (this.logs) {
+          this.logs.innerHTML = `<div class="log-entry">✓ Converted ${total} images — ready to download ZIP</div>`;
+          this.logs.classList.add('active');
+        }
+
+        if (this.downloadBtn) {
+          this.downloadBtn.hidden = false;
+          this.downloadBtn.textContent = 'Download ZIP';
+        }
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       this.showError(errorMessage);
@@ -467,28 +670,51 @@ export class ImageBitsElement extends HTMLElement {
     }
   }
 
-  private downloadImage() {
-    if (!this.processedBlob || !this.currentFile) return;
+  private setLoadingMessage(text: string) {
+    if (this.loading) {
+      this.loading.textContent = text;
+    }
+  }
 
-    const url = URL.createObjectURL(this.processedBlob);
+  private downloadSingle() {
+    if (!this.batchOutputs?.length || !this.currentFiles.length) return;
+    const blob = this.batchOutputs[0].blob;
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-
-    const formatSelect = this.workshop?.querySelector('#format') as HTMLSelectElement;
-    const format = formatSelect?.value;
-    const originalName = this.currentFile.name.replace(/\.[^/.]+$/, '');
-    const extension =
-      format && format !== 'original' ? format : this.currentFile.name.split('.').pop();
-    a.download = `${originalName}_processed.${extension}`;
-
+    a.download = this.batchOutputs[0].zipName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
+  private downloadZip() {
+    if (!this.batchOutputs || this.batchOutputs.length === 0) return;
+
+    void (async () => {
+      const files: Record<string, Uint8Array> = {};
+      for (const { zipName, blob } of this.batchOutputs!) {
+        const ab = await blob.arrayBuffer();
+        files[zipName] = new Uint8Array(ab);
+      }
+      const zipped = zipSync(files, { level: 6 });
+      const zipBlob = new Blob([new Uint8Array(zipped)], { type: 'application/zip' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.download = `imagebits-${stamp}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    })();
+  }
+
   private showLoading() {
     this.loading?.classList.add('active');
+    this.setLoadingMessage('Processing…');
     if (this.processButton) {
       this.processButton.disabled = true;
     }
@@ -496,6 +722,7 @@ export class ImageBitsElement extends HTMLElement {
 
   private hideLoading() {
     this.loading?.classList.remove('active');
+    this.setLoadingMessage('Processing…');
     if (this.processButton) {
       this.processButton.disabled = false;
     }
