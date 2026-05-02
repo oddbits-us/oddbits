@@ -1,3 +1,7 @@
+/**
+ * Desktop shell: parallax, anime.js entrances, draggable .window stacking, .desktop-icon → #window-*.
+ * HTML/CSS conventions for new tools (icons, windows, modals): apps/web/UI_THEME.md
+ */
 import './styles.css'
 import './components/imagebits'
 import anime from 'animejs'

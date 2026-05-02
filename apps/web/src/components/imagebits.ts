@@ -1,6 +1,9 @@
 /**
  * ImageBits Web Component
  * Vanilla TypeScript Web Component for image processing
+ *
+ * UI: compact shell matches .window chrome (styles.css `odd-imagebits`); workshop uses `.window`
+ * as a fixed dialog (z-index 400). Same patterns apply to other bits — see apps/web/UI_THEME.md.
  */
 
 import { processImage, imageBits } from '@oddbits/imagebits';
