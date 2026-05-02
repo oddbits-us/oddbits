@@ -2,11 +2,12 @@
  * ImageBits Web Component
  * Vanilla TypeScript Web Component for image processing
  *
- * UI: compact shell matches .window chrome (styles.css `odd-imagebits`); workshop uses `.window`
- * as a fixed dialog (z-index 400). Same patterns apply to other bits — see apps/web/UI_THEME.md.
+ * UI: borderless shell inside the parent `.window` (styles `odd-imagebits`); workshop is a separate
+ * `.window` (fixed, z-index 400). See apps/web/UI_THEME.md.
  */
 
-import { processImage, imageBits } from '@oddbits/imagebits';
+import { processImage } from '@oddbits/imagebits';
+import { attachFixedWindowResize } from '../windowResize';
 import type { ImageBitsOptions } from '@oddbits/imagebits';
 import { zipSync } from 'fflate';
 
@@ -47,13 +48,6 @@ export class ImageBitsElement extends HTMLElement {
     this.innerHTML = `
       <div class="imagebits-shell">
         <div class="imagebits-intro">
-          <div class="tool-header">
-            <div>
-              <div class="tool-title">ImageBits</div>
-              <div class="tool-description">${imageBits.description}</div>
-            </div>
-          </div>
-
           <div class="imagebits-intro-error" id="imagebits-intro-error" hidden></div>
 
           <div class="drop-zone" id="drop-zone">
@@ -467,6 +461,11 @@ export class ImageBitsElement extends HTMLElement {
     this.workshop.style.top = `${top}px`;
     this.clampDialogToViewport();
     this.setupDialogDrag();
+    attachFixedWindowResize(this.workshop, {
+      clamp: () => this.clampDialogToViewport(),
+      minWidth: 360,
+      minHeight: 200,
+    });
     this.workshop.addEventListener('mousedown', this.raiseDialogZBound);
     window.addEventListener('resize', this.onResizeBound);
   }

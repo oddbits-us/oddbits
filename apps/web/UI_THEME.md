@@ -6,6 +6,7 @@ This doc is the source of truth for **apps/web**: how the faux-desktop shell, wi
 
 - **Retrowave desktop**: synthwave gradient sky, scanlines, perspective grid, chunky **pixel borders** (`--radius: 0`), **no rounded corners** on chrome.
 - **Old-school window chrome**: navy title bar (`--color-window-title`), light gray 3D buttons (`.window-btn`), Arial/Tahoma for UI chrome; **SuperPixel** only for large hero titles inside `.window-content`.
+- **Inside windows**: do **not** repeat the thick black frame + `--shadow` on inner panels. Use **spacing**, **`--window-inner-rule`** (4px black dividers), and light hovers. Only top-level `.window` nodes (and separate modal `.window` dialogs, e.g. ImageBits workshop) get the full OS window treatment.
 - **Emoji**: prefer **SerenityOS-Emoji** for icons and decorative glyphs so they match the pixel OS vibe (`font-family` on `.desktop-icon-img`, `.tool-icon`, etc.).
 
 ## CSS tokens (`src/styles.css` → `:root`)
@@ -22,7 +23,11 @@ This doc is the source of truth for **apps/web**: how the faux-desktop shell, wi
 | `--color-error` | Errors |
 | `--color-window-bg`, `--color-window-title`, `--color-window-title-text` | Window body / titlebar |
 | `--spacing-xs` … `--spacing-xl` | Vertical rhythm |
-| `--shadow`, `--shadow-glow`, `--shadow-press` | Chunky drop shadows for panels |
+| `--shadow`, `--shadow-glow`, `--shadow-press` | Chunky drop shadows — **use on `.window` chrome only**, not inner content |
+| `--window-inner-rule` | `4px solid` inner horizontal rules inside `.window-content` |
+| `--window-default-max-width` | Default **max-width** for draggable desktop windows (`420px`; `.window-size-default`) |
+| `--window-dialog-max-width` | Default width cap for **modal** dialogs such as ImageBits workshop (`840px`) |
+| `--window-hero-max-width` | Hero intro window (`380px`; combine with `.window--hero`) |
 
 New panels should **reuse these variables** instead of hard-coding hex colors, unless you need a deliberate one-off (then document it in a CSS comment).
 
@@ -37,6 +42,12 @@ Rough layering (low → high):
 5. **Modal-style dialogs** that must sit above everything: use **`z-index: 400`** (see ImageBits workshop in `imagebits.ts` and `.window.imagebits-dialog-window…` in CSS).
 
 When adding a full-screen or fixed dialog, pick a z-index **above** the draggable desktop windows (≥400 is reserved for app-modals).
+
+## Window sizing & resize
+
+- **Desktop windows**: use `.window-size-default` for the initial max width; **`.window--hero`** on the main Oddbits intro narrows further and adds padding inside `.window-content`.
+- **Resize**: invisible edge/corner hit targets (`src/windowResize.ts`) — **`attachTransformWindowResize`** for translate-based desktop windows (`main.ts`), **`attachFixedWindowResize`** for fixed dialogs (`imagebits.ts` workshop). Title bar stays above handles (`z-index`) so dragging still works.
+- After resizing in px, windows can grow beyond the initial max-width.
 
 ## Desktop icon → window wiring
 
@@ -85,11 +96,11 @@ Every top-level window follows this shape:
 | --- | --- | --- |
 | Hero | `.anime-header` | Main Oddbits intro; animated on load in `main.ts` |
 | Sections with stagger | `.anime-section` on container, `.anime-item` on children | IntersectionObserver + anime.js stagger |
-| Tool list row | `.tools-list` → `.tool-item` + `.tool-icon` + `.tool-info` | Featured tools |
-| Code / install docs | `.docs-section` | Bordered blocks with `<pre><code>` |
-| Wide tool embed | `.tools-grid` | Grid wrapper for web components |
+| Tool list row | `.tools-list` → `.tool-item` + `.tool-icon` + `.tool-info` | Flat rows; `--window-inner-rule` between items |
+| Code / install docs | `.docs-section` | Stacked sections separated by rules; `<pre><code>` with light border only |
+| Wide tool embed | `.tools-grid` | Grid wrapper for web components; optional rule above when following `.tools-list` |
 
-Section headings: **`h2`** uses Arial/Tahoma per global `.window-content` / `section h2` rules. **`h1`** inside `.window-content` uses **SuperPixel** — reserve for primary hero only.
+Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** / tool titles ≈1.05rem, body/secondary text ≈0.85–0.95rem, hero **`h1`** (SuperPixel) ≈2.25rem. **`h1`** is for the main Oddbits hero only.
 
 ## Links & buttons
 
@@ -105,7 +116,7 @@ ImageBits is the reference implementation:
 - Prefer **`role="dialog"`** and wire Escape + focus behavior in the component TS.
 - Avoid dimming overlays unless you add a deliberate full-screen scrim (not used currently).
 
-Shell inside another window: the compact **`odd-imagebits`** host uses the same **4px border + `--shadow`** as `.window` so it reads as embedded chrome (`styles.css` block `/* ImageBits — compact shell */`).
+Shell inside another window: **`odd-imagebits`** is borderless/transparent so it does not stack a second “window” inside the parent `.window`. The **workshop** sub-dialog is its own `.window` (fixed, high z-index) and keeps full chrome.
 
 ## New bit checklist
 

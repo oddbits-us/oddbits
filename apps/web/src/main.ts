@@ -5,6 +5,7 @@
 import './styles.css'
 import './components/imagebits'
 import anime from 'animejs'
+import { attachTransformWindowResize } from './windowResize'
 
 document.addEventListener('DOMContentLoaded', () => {
   // Parallax scroll effect
@@ -102,6 +103,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let xOffset = 0;
     let yOffset = 0;
 
+    function applyDragTransform(xPos: number, yPos: number) {
+      const rotationMatch = windowEl.style.transform.match(/rotate\([^)]+\)/);
+      const rotation = rotationMatch ? rotationMatch[0] : '';
+      windowEl.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) ${rotation}`;
+    }
+
+    attachTransformWindowResize(windowEl, {
+      getOffset: () => ({ x: xOffset, y: yOffset }),
+      applyTransform: (x, y) => {
+        xOffset = x;
+        yOffset = y;
+        applyDragTransform(xOffset, yOffset);
+      },
+      afterResize: () => {
+        const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
+        xOffset = clamped.x;
+        yOffset = clamped.y;
+        applyDragTransform(xOffset, yOffset);
+      },
+    });
+
     // Bring to front on click
     windowEl.addEventListener('mousedown', () => {
       highestZIndex++;
@@ -132,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         xOffset = clamped.x;
         yOffset = clamped.y;
 
-        setTranslate(xOffset, yOffset, windowEl);
+        applyDragTransform(xOffset, yOffset);
       }
     }
 
@@ -140,24 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
       xOffset = clamped.x;
       yOffset = clamped.y;
-      setTranslate(xOffset, yOffset, windowEl);
+      applyDragTransform(xOffset, yOffset);
       isDragging = false;
-    }
-
-    function setTranslate(xPos: number, yPos: number, el: HTMLElement) {
-      // Preserve existing transform (like rotation) if any
-      const currentTransform = el.style.transform;
-      const rotationMatch = currentTransform.match(/rotate\([^)]+\)/);
-      const rotation = rotationMatch ? rotationMatch[0] : '';
-      
-      el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) ${rotation}`;
     }
 
     window.addEventListener('resize', () => {
       const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
       xOffset = clamped.x;
       yOffset = clamped.y;
-      setTranslate(xOffset, yOffset, windowEl);
+      applyDragTransform(xOffset, yOffset);
     });
 
     // Close button functionality
