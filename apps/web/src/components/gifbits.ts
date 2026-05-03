@@ -63,6 +63,8 @@ export class GifBitsElement extends BitElement {
   private encodeBtn: HTMLButtonElement | null = null;
   private downloadBtn: HTMLButtonElement | null = null;
   private logs: HTMLElement | null = null;
+  /** Cleared on disconnect — file-drop listeners on `#window-gifbits`. */
+  private introWindowDropAbort: AbortController | null = null;
 
   private trimStartPct = 0;
   private trimEndPct = 100;
@@ -317,6 +319,8 @@ npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --e
   }
 
   protected onDisconnect(): void {
+    this.introWindowDropAbort?.abort();
+    this.introWindowDropAbort = null;
     this.revokePreviewUrl();
     this.revokeOutputPreviewUrl();
     void this.cleanupMemfs();
@@ -534,23 +538,41 @@ npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --e
       });
     }
 
-    const shell = this.shell;
-    if (shell) {
-      shell.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.dropZone?.classList.add('dragover');
-      });
-      shell.addEventListener('dragleave', (e) => {
-        if (!shell.contains(e.relatedTarget as Node)) this.dropZone?.classList.remove('dragover');
-      });
-      shell.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.dropZone?.classList.remove('dragover');
-        const f = e.dataTransfer?.files?.[0];
-        if (f) this.handleVideoFile(f);
-      });
+    const hostSel = this.getHostWindowSelector();
+    const hostWindow = hostSel ? document.querySelector<HTMLElement>(hostSel) : null;
+    const dropRoot = hostWindow ?? this.shell;
+    if (dropRoot) {
+      this.introWindowDropAbort?.abort();
+      this.introWindowDropAbort = new AbortController();
+      const { signal } = this.introWindowDropAbort;
+
+      dropRoot.addEventListener(
+        'dragover',
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.dropZone?.classList.add('dragover');
+        },
+        { signal },
+      );
+      dropRoot.addEventListener(
+        'dragleave',
+        (e) => {
+          if (!dropRoot.contains(e.relatedTarget as Node)) this.dropZone?.classList.remove('dragover');
+        },
+        { signal },
+      );
+      dropRoot.addEventListener(
+        'drop',
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.dropZone?.classList.remove('dragover');
+          const f = e.dataTransfer?.files?.[0];
+          if (f) this.handleVideoFile(f);
+        },
+        { signal },
+      );
     }
 
     if (this.dropZone) {

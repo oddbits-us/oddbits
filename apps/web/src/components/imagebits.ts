@@ -42,6 +42,8 @@ export class ImageBitsElement extends BitElement {
   private processButton: HTMLButtonElement | null = null;
   private downloadBtn: HTMLButtonElement | null = null;
   private logs: HTMLElement | null = null;
+  /** Cleared on disconnect — file-drop listeners on `#window-imagebits`. */
+  private introWindowDropAbort: AbortController | null = null;
 
   // ====== bit-specific state ======
   private currentFiles: File[] = [];
@@ -298,6 +300,8 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
   }
 
   protected onDisconnect(): void {
+    this.introWindowDropAbort?.abort();
+    this.introWindowDropAbort = null;
     this.revokePreviewUrl();
     this.revokeThumbnailUrls();
   }
@@ -357,29 +361,47 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
       });
     }
 
-    const shell = this.shell;
-    if (shell) {
-      shell.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.dropZone?.classList.add('dragover');
-      });
+    const hostSel = this.getHostWindowSelector();
+    const hostWindow = hostSel ? document.querySelector<HTMLElement>(hostSel) : null;
+    const dropRoot = hostWindow ?? this.shell;
+    if (dropRoot) {
+      this.introWindowDropAbort?.abort();
+      this.introWindowDropAbort = new AbortController();
+      const { signal } = this.introWindowDropAbort;
 
-      shell.addEventListener('dragleave', (e) => {
-        if (!shell.contains(e.relatedTarget as Node)) {
+      dropRoot.addEventListener(
+        'dragover',
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.dropZone?.classList.add('dragover');
+        },
+        { signal },
+      );
+
+      dropRoot.addEventListener(
+        'dragleave',
+        (e) => {
+          if (!dropRoot.contains(e.relatedTarget as Node)) {
+            this.dropZone?.classList.remove('dragover');
+          }
+        },
+        { signal },
+      );
+
+      dropRoot.addEventListener(
+        'drop',
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           this.dropZone?.classList.remove('dragover');
-        }
-      });
-
-      shell.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.dropZone?.classList.remove('dragover');
-        const files = e.dataTransfer?.files;
-        if (files && files.length > 0) {
-          this.handleFiles(files);
-        }
-      });
+          const files = e.dataTransfer?.files;
+          if (files && files.length > 0) {
+            this.handleFiles(files);
+          }
+        },
+        { signal },
+      );
     }
 
     if (this.processButton) {
