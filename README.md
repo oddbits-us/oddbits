@@ -71,7 +71,7 @@ I don't want your data or your money — just the quiet satisfaction of making s
 | Package | What it does | Where it runs |
 |---|---|---|
 | [`@oddbits/core`](packages/core) | Plugin types + tiny in-memory registry, used by code-level callers. | Node + browser |
-| [`@oddbits/imagebits`](packages/imagebits) | Image resize / optimize / convert (`webp`, `avif`, `png`, `jpg`) and optional local alt-text. | Node (sharp) + browser (Canvas) + CLI |
+| [`@oddbits/imagebits`](packages/imagebits) | Resize / convert (`webp`, `avif`, `png`, `jpg`); strips embedded metadata by re-encoding; optional local alt-text and CLI bulk rename. | Node (sharp) + browser (Canvas) + CLI |
 | [`@oddbits/gifbits`](packages/gifbits) | Video crop / trim / encode plans for ffmpeg (animated WebP, GIF, AVIF, PNG sequence); wasm workshop on the site, CLI + library elsewhere. | Node + browser (workshop) + CLI |
 
 The browser app at [`apps/web/`](apps/web) is the demo desktop that hosts

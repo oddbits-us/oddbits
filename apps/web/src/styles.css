@@ -1969,11 +1969,47 @@ button.gifbits-trim-handle:active:not(:disabled),
 }
 
 .imagebits-workshop-portal .imagebits-batch-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  gap: 0;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
+}
+
+.imagebits-workshop-portal .imagebits-batch-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  margin: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.2;
+  outline: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-overflow: ellipsis;
+}
+
+.imagebits-workshop-portal .imagebits-batch-name-input:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.imagebits-workshop-portal .imagebits-batch-name-input:focus {
+  border-color: var(--color-accent);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.imagebits-workshop-portal .imagebits-batch-ext {
+  flex-shrink: 0;
+  padding-left: 2px;
+  color: var(--color-text-secondary);
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.74rem;
+  user-select: none;
 }
 
 .imagebits-workshop-portal .imagebits-batch-convert-status {
@@ -2075,7 +2111,7 @@ button.gifbits-trim-handle:active:not(:disabled),
 }
 
 .imagebits-workshop-portal .imagebits-top-controls .control-group > select,
-.imagebits-workshop-portal .imagebits-top-controls .control-group > input {
+.imagebits-workshop-portal .imagebits-top-controls .control-group > input:not([type='checkbox']) {
   justify-self: end;
   width: min(100%, 170px);
 }
@@ -2084,6 +2120,75 @@ button.gifbits-trim-handle:active:not(:disabled),
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+}
+
+/* Rename group — checkbox row + collapsible details with prefix/start fields. */
+.imagebits-workshop-portal .imagebits-rename-group {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+/* `[hidden]` must win over `display: grid` below (author CSS can otherwise
+   defeat the attribute and keep Prefix / Start visible while unchecked). */
+.imagebits-workshop-portal .imagebits-rename-details[hidden] {
+  display: none !important;
+}
+
+/* Classic Win95-style checkbox: inset field + 3D edges like text inputs. */
+.imagebits-workshop-portal .imagebits-rename-toggle-row > .imagebits-rename-toggle {
+  position: relative;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin: 0;
+  padding: 0;
+  justify-self: end;
+  align-self: center;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background: var(--input-bg);
+  color: var(--input-text);
+  border-top: 2px solid var(--btn-shadow);
+  border-left: 2px solid var(--btn-shadow);
+  border-right: 2px solid var(--btn-light);
+  border-bottom: 2px solid var(--btn-light);
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.55),
+    inset -2px -2px 0 rgba(255, 255, 255, 0.06);
+}
+
+.imagebits-workshop-portal .imagebits-rename-toggle-row > .imagebits-rename-toggle:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.imagebits-workshop-portal .imagebits-rename-toggle-row > .imagebits-rename-toggle:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.55),
+    inset -2px -2px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px var(--color-accent);
+}
+
+.imagebits-workshop-portal .imagebits-rename-toggle-row > .imagebits-rename-toggle:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 10px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.imagebits-workshop-portal .imagebits-rename-details {
+  display: grid;
+  gap: var(--spacing-sm);
+  padding-left: var(--spacing-md);
+  border-left: 2px solid rgba(255, 255, 255, 0.12);
 }
 
 .imagebits-workshop-portal .imagebits-input-label {

@@ -42,6 +42,12 @@ export class ImageBitsElement extends BitElement {
   private processButton: HTMLButtonElement | null = null;
   private downloadBtn: HTMLButtonElement | null = null;
   private logs: HTMLElement | null = null;
+  private renameGroup: HTMLElement | null = null;
+  private renameToggle: HTMLInputElement | null = null;
+  private renameDetails: HTMLElement | null = null;
+  private renamePrefix: HTMLInputElement | null = null;
+  private renameStart: HTMLInputElement | null = null;
+  private formatSelect: HTMLSelectElement | null = null;
   /** Cleared on disconnect — file-drop listeners on `#window-imagebits`. */
   private introWindowDropAbort: AbortController | null = null;
 
@@ -128,6 +134,23 @@ export class ImageBitsElement extends BitElement {
                       </label>
                       <input type="range" id="quality" min="1" max="100" value="92">
                     </div>
+
+                    <div class="imagebits-rename-group" id="imagebits-rename-group" hidden>
+                      <div class="control-group imagebits-rename-toggle-row">
+                        <label for="imagebits-rename-toggle">Rename</label>
+                        <input type="checkbox" id="imagebits-rename-toggle" class="imagebits-rename-toggle">
+                      </div>
+                      <div class="imagebits-rename-details" id="imagebits-rename-details" hidden>
+                        <div class="control-group">
+                          <label for="imagebits-rename-prefix">Prefix</label>
+                          <input type="text" id="imagebits-rename-prefix" placeholder="e.g. photo" autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="control-group">
+                          <label for="imagebits-rename-start">Start numbers at</label>
+                          <input type="number" id="imagebits-rename-start" min="0" value="1">
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="control-group imagebits-alt-control">
@@ -135,7 +158,7 @@ export class ImageBitsElement extends BitElement {
                       <label for="generate-alt-main-btn">Alt Text</label>
                       <button type="button" class="help-trigger" id="alt-text-help-trigger" aria-label="Alt text help" aria-expanded="false" aria-controls="alt-text-help-popover">?</button>
                       <div class="popover" id="alt-text-help-popover" role="tooltip" hidden>
-                        Runs locally in your browser (slow). First run downloads model files from Hugging Face and caches them in your browser. Your images and other user data are never uploaded.
+                        Local only. First run downloads a caption model; your images stay on this device.
                       </div>
                     </div>
                     <div class="imagebits-alt-custom-actions" id="imagebits-alt-custom-actions" hidden>
@@ -183,7 +206,12 @@ export class ImageBitsElement extends BitElement {
             </div>
           </div>
           <div class="window-content imagebits-help-content">
-            <p>Same API surface in browser and Node &mdash; bundlers pick the right build.</p>
+            <p>One import in browser and Node; the bundler picks the right build.</p>
+
+            <h3>Workshop</h3>
+            <p>
+              Drop images, set format and quality, then convert. With several files you can edit output names and use <strong>Rename</strong> + <strong>Bulk Convert</strong> for <code>prefix-1</code>, <code>prefix-2</code>, …
+            </p>
 
             <h3>In your code</h3>
             <pre><code>npm install @oddbits/imagebits
@@ -195,24 +223,17 @@ const r = await processImage(input, { format: 'webp', maxDimension: 1080 });
 
             <h3>From the CLI</h3>
             <pre><code>npx @oddbits/imagebits *.png -f webp -o ./out/
+npx @oddbits/imagebits ./photos -r -f webp --rename-prefix beach -o ./out/
 npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></pre>
 
             <h3>Privacy</h3>
             <p class="imagebits-help-privacy">
-              Your images stay in your browser. Resize, convert, and zip all
-              run on your machine &mdash; nothing is uploaded.
-              <br>
-              When you use <strong>Generate Alt Text</strong>, the model
-              weights (~150MB) are downloaded once from
-              <code>huggingface.co</code> and the
-              <a href="https://github.com/huggingface/transformers.js" target="_blank" rel="noopener noreferrer">transformers.js</a>
-              runtime from <code>cdn.jsdelivr.net</code>, then cached by
-              your browser. Captioning itself runs locally on your device;
-              your images are never sent to those services.
+              Processing and zips stay on your device. Outputs are re-encoded, so camera metadata from the originals is not carried into files (details in the README).
+              <strong>Alt Text</strong> downloads model weights once (large first run), then runs locally; your images are not uploaded.
             </p>
 
             <p>
-              Full docs, options, and source on
+              Full details and docs on 
               <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/imagebits/README.md" target="_blank" rel="noopener noreferrer">GitHub</a>.
             </p>
           </div>
@@ -233,8 +254,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
             <div class="alert-modal-icon" aria-hidden="true">⚠️</div>
             <div class="alert-modal-title" id="imagebits-confirm-title">Discard unsaved progress?</div>
             <div class="alert-modal-message" id="imagebits-confirm-message">
-              You have unsaved images, alt text, or work in progress in this dialog.
-              Closing will stop any active processing and clear everything from the workshop.
+              Closing clears this workshop and stops any work in progress.
             </div>
             <div class="alert-modal-actions">
               <button type="button" id="imagebits-confirm-cancel" class="bit-confirm-cancel">No! Cancel!</button>
@@ -332,6 +352,12 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     this.processButton = this.querySelector('#process-btn') as HTMLButtonElement;
     this.downloadBtn = this.querySelector('#download-btn') as HTMLButtonElement;
     this.logs = this.querySelector('#logs') as HTMLElement;
+    this.renameGroup = this.querySelector('#imagebits-rename-group') as HTMLElement;
+    this.renameToggle = this.querySelector('#imagebits-rename-toggle') as HTMLInputElement;
+    this.renameDetails = this.querySelector('#imagebits-rename-details') as HTMLElement;
+    this.renamePrefix = this.querySelector('#imagebits-rename-prefix') as HTMLInputElement;
+    this.renameStart = this.querySelector('#imagebits-rename-start') as HTMLInputElement;
+    this.formatSelect = this.querySelector('#format') as HTMLSelectElement;
 
     const qualitySlider = this.querySelector('#quality') as HTMLInputElement;
     const qualityValue = this.querySelector('#quality-value') as HTMLElement;
@@ -345,6 +371,11 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
       qualitySlider.addEventListener('input', updateQualityLabel);
       qualitySlider.addEventListener('change', updateQualityLabel);
     }
+
+    // Prefix / start-index rows live inside `#imagebits-rename-details`; keep
+    // them collapsed unless the checkbox is checked (also fixes `[hidden]` vs
+    // CSS `display` specificity on first paint).
+    this.syncRenameDetailsVisibility();
   }
 
   protected attachBitListeners(): void {
@@ -468,15 +499,74 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
       this.batchFileList.addEventListener('input', (e) => {
         const target = e.target as HTMLElement;
         const editor = target.closest<HTMLTextAreaElement>('.imagebits-batch-alt-editor');
-        if (!editor) return;
-        const index = Number(editor.dataset.index ?? '-1');
-        if (Number.isNaN(index) || index < 0 || !this.altDrafts[index]) return;
-        this.autoResizeAltEditor(editor);
-        this.altDrafts[index].text = editor.value.trim();
-        this.altDrafts[index].status = this.altDrafts[index].text ? 'ready' : 'idle';
-        this.exportsDownloaded = false;
+        if (editor) {
+          const index = Number(editor.dataset.index ?? '-1');
+          if (!Number.isNaN(index) && index >= 0 && this.altDrafts[index]) {
+            this.autoResizeAltEditor(editor);
+            this.altDrafts[index].text = editor.value.trim();
+            this.altDrafts[index].status = this.altDrafts[index].text ? 'ready' : 'idle';
+            this.exportsDownloaded = false;
+          }
+          return;
+        }
+        const nameInput = target.closest<HTMLInputElement>('.imagebits-batch-name-input');
+        if (nameInput) {
+          // Live edits to filenames are read fresh at Download time; we only
+          // need to invalidate the "already downloaded" flag so the dirty-close
+          // confirm fires again if the user closes after editing.
+          this.exportsDownloaded = false;
+        }
       });
     }
+
+    if (this.renameToggle) {
+      this.renameToggle.addEventListener('change', () => {
+        this.syncRenameDetailsVisibility();
+      });
+    }
+
+    if (this.formatSelect) {
+      this.formatSelect.addEventListener('change', () => {
+        this.syncBatchListExtensions();
+      });
+    }
+  }
+
+  private syncRenameDetailsVisibility() {
+    if (!this.renameDetails || !this.renameToggle) return;
+    this.renameDetails.hidden = !this.renameToggle.checked;
+  }
+
+  private syncRenameGroupVisibility() {
+    if (!this.renameGroup) return;
+    const show = this.currentFiles.length > 1;
+    this.renameGroup.hidden = !show;
+    if (!show && this.renameToggle) {
+      this.renameToggle.checked = false;
+      this.syncRenameDetailsVisibility();
+    }
+  }
+
+  /** Returns `.webp` etc. — same logic as `outputFilename` but stem-free. */
+  private outputExtForFile(file: File): string {
+    const format = this.formatSelect?.value;
+    const ext =
+      format && format !== 'original'
+        ? format
+        : file.name.includes('.')
+          ? (file.name.split('.').pop() ?? 'bin')
+          : 'bin';
+    return `.${ext}`;
+  }
+
+  private syncBatchListExtensions() {
+    if (!this.batchFileList) return;
+    const extSpans = this.batchFileList.querySelectorAll<HTMLElement>('.imagebits-batch-ext');
+    extSpans.forEach((span) => {
+      const idx = Number(span.dataset.index ?? '-1');
+      if (Number.isNaN(idx) || idx < 0 || !this.currentFiles[idx]) return;
+      span.textContent = this.outputExtForFile(this.currentFiles[idx]);
+    });
   }
 
   private hideIntroError() {
@@ -531,6 +621,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     }
 
     this.syncProcessButtonLabel();
+    this.syncRenameGroupVisibility();
     this.openWorkshop();
   }
 
@@ -563,11 +654,16 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
                 ? 'Retry'
                 : 'Generate Alt Text';
         const buttonExtraClass = draft.status === 'generating' ? ' is-active' : '';
+        const stem = this.stemFromFilename(f.name);
+        const ext = this.outputExtForFile(f);
         return `<li class="imagebits-batch-item" data-index="${i}">
           <img class="imagebits-batch-thumb" src="${this.thumbnailUrls[i] ?? ''}" alt="Thumbnail for ${this.escapeHtml(f.name)}">
           <div class="imagebits-batch-main">
             <div class="imagebits-batch-row imagebits-batch-row-name">
-              <span class="imagebits-batch-name">${this.escapeHtml(f.name)}</span>
+              <span class="imagebits-batch-name">
+                <input class="imagebits-batch-name-input" data-index="${i}" type="text" value="${this.escapeHtml(stem)}" spellcheck="false" autocomplete="off" aria-label="Output filename for ${this.escapeHtml(f.name)}">
+                <span class="imagebits-batch-ext" data-index="${i}">${this.escapeHtml(ext)}</span>
+              </span>
               <span class="imagebits-batch-convert-status" title=""></span>
             </div>
             <div class="imagebits-batch-row imagebits-batch-row-alt">
@@ -580,6 +676,10 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
       .join('');
     const editors = this.batchFileList.querySelectorAll<HTMLTextAreaElement>('.imagebits-batch-alt-editor');
     editors.forEach((editor) => this.autoResizeAltEditor(editor));
+  }
+
+  private stemFromFilename(name: string): string {
+    return name.replace(/\.[^/.]+$/, '');
   }
 
   private autoResizeAltEditor(editor: HTMLTextAreaElement) {
@@ -650,6 +750,11 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     this.currentFiles = [];
     if (this.fileInput) this.fileInput.value = '';
     this.hideIntroError();
+    if (this.renameToggle) this.renameToggle.checked = false;
+    if (this.renamePrefix) this.renamePrefix.value = '';
+    if (this.renameStart) this.renameStart.value = '1';
+    this.syncRenameDetailsVisibility();
+    this.syncRenameGroupVisibility();
   }
 
   private getOptionsFromWorkshop(): ImageBitsOptions {
@@ -913,6 +1018,55 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     return `${stem}.${ext}`;
   }
 
+  /**
+   * Sanitize a user-typed filename stem so it's safe as a zip entry name and
+   * a browser download. Strip path separators and zero-bytes, collapse
+   * whitespace, and fall back to a stable default if the result is empty.
+   */
+  private sanitizeStem(raw: string, fallback: string): string {
+    const cleaned = raw
+      .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return cleaned || fallback;
+  }
+
+  /**
+   * Read the live filename from row `i` of the batch list (the editable
+   * input the user can type into) and combine it with the format-derived
+   * extension. Falls back to the input filename's stem if the row hasn't
+   * been rendered yet (single-file mode).
+   */
+  private currentOutputName(i: number): string {
+    const file = this.currentFiles[i];
+    if (!file) return `image-${i + 1}.bin`;
+    const ext = this.outputExtForFile(file);
+    const input = this.batchFileList?.querySelector<HTMLInputElement>(
+      `.imagebits-batch-name-input[data-index="${i}"]`,
+    );
+    const fallbackStem = this.stemFromFilename(file.name) || `image-${i + 1}`;
+    const stemRaw = input ? input.value : fallbackStem;
+    const stem = this.sanitizeStem(stemRaw, fallbackStem);
+    return `${stem}${ext}`;
+  }
+
+  /**
+   * Bulk rename: overwrite every row's name input with `${prefix}-${start+i}`.
+   * Called at Convert time when the Rename checkbox is on. Wipes any prior
+   * per-row edits — that's the documented behavior.
+   */
+  private applyBulkRenameToInputs(prefix: string, start: number) {
+    if (!this.batchFileList) return;
+    const inputs = this.batchFileList.querySelectorAll<HTMLInputElement>(
+      '.imagebits-batch-name-input',
+    );
+    inputs.forEach((input) => {
+      const idx = Number(input.dataset.index ?? '-1');
+      if (Number.isNaN(idx) || idx < 0) return;
+      input.value = `${prefix}-${start + idx}`;
+    });
+  }
+
   private uniquifyZipNames(names: string[]): string[] {
     const counts = new Map<string, number>();
     return names.map((original) => {
@@ -942,15 +1096,25 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     const root = this.workshop;
     if (!root) return;
 
-    const formatSelect = root.querySelector('#format') as HTMLSelectElement;
     const optionsBase = this.getOptionsFromWorkshop();
     const total = this.currentFiles.length;
+
+    // Bulk rename runs BEFORE encoding so the row inputs reflect the final
+    // names from the moment Convert is pressed. This intentionally wipes any
+    // per-row edits the user made — see `currentOutputName` for the
+    // post-convert path where individual edits are honored on Download.
+    if (total > 1 && this.renameToggle?.checked) {
+      const prefix = this.sanitizeStem((this.renamePrefix?.value ?? '').trim(), 'image');
+      const startRaw = parseInt(this.renameStart?.value ?? '1', 10);
+      const start = Number.isFinite(startRaw) ? startRaw : 1;
+      this.applyBulkRenameToInputs(prefix, start);
+    }
 
     try {
       if (total === 1) {
         const result = await processImage(this.currentFiles[0], optionsBase);
         this.processedBlob = result.blob;
-        const outName = this.outputFilename(this.currentFiles[0], formatSelect);
+        const outName = this.currentOutputName(0);
         this.batchOutputMeta = [
           {
             inputName: this.currentFiles[0].name,
@@ -995,7 +1159,7 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
           this.downloadBtn.textContent = 'Download';
         }
       } else {
-        const rawNames = this.currentFiles.map((f) => this.outputFilename(f, formatSelect));
+        const rawNames = this.currentFiles.map((_, i) => this.currentOutputName(i));
         const zipNames = this.uniquifyZipNames(rawNames);
         const outputs: { zipName: string; blob: Blob }[] = [];
         const metaRows: Array<{ inputName: string; outputName: string; width: number; height: number }> =
@@ -1008,6 +1172,8 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
           this.setProcessing(true, `Converting ${i + 1} / ${total}…`);
           try {
             const result = await processImage(this.currentFiles[i], optionsBase);
+            // `zipName` is a snapshot at convert time; the actual download
+            // re-reads the row inputs so post-convert edits are honored.
             outputs.push({ zipName: zipNames[i], blob: result.blob });
             totalIn += result.metadata.originalSize ?? 0;
             totalOut += result.metadata.size;
@@ -1054,13 +1220,27 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
     }
   }
 
+  /**
+   * Compute the final names to use for downloading: the live row inputs (so
+   * post-convert edits are honored) routed through `uniquifyZipNames` so two
+   * rows with the same value still produce distinct files.
+   */
+  private resolveDownloadNames(): string[] {
+    if (!this.batchOutputs) return [];
+    const live = this.batchOutputs.map((snap, i) =>
+      this.currentFiles[i] ? this.currentOutputName(i) : snap.zipName,
+    );
+    return this.uniquifyZipNames(live);
+  }
+
   private downloadSingle() {
     if (!this.batchOutputs?.length || !this.currentFiles.length) return;
     const blob = this.batchOutputs[0].blob;
+    const names = this.resolveDownloadNames();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = this.batchOutputs[0].zipName;
+    a.download = names[0] ?? this.batchOutputs[0].zipName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1073,12 +1253,19 @@ npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></p
 
     void (async () => {
       const files: Record<string, Uint8Array> = {};
-      for (const { zipName, blob } of this.batchOutputs!) {
+      const names = this.resolveDownloadNames();
+      for (let i = 0; i < this.batchOutputs!.length; i++) {
+        const { blob } = this.batchOutputs![i];
         const ab = await blob.arrayBuffer();
-        files[zipName] = new Uint8Array(ab);
+        files[names[i] ?? this.batchOutputs![i].zipName] = new Uint8Array(ab);
       }
       this.altManifest = this.buildManifestFromCurrentDrafts();
       if (this.altManifest) {
+        // Refresh manifest output names against live row values so it lines
+        // up with what's actually inside the zip.
+        for (let i = 0; i < this.altManifest.images.length; i++) {
+          if (names[i]) this.altManifest.images[i].outputName = names[i];
+        }
         files['alt-text.json'] = new TextEncoder().encode(`${JSON.stringify(this.altManifest, null, 2)}\n`);
       }
       const zipped = zipSync(files, { level: 6 });

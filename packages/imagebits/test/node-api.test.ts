@@ -119,6 +119,48 @@ describe('processImage (Node)', () => {
   });
 });
 
+describe('Privacy / metadata stripping (Node)', () => {
+  it('strips EXIF (incl. fake GPS + camera) from outputs', async () => {
+    // Camera make/model and GPS coords are exactly the tags users would NOT
+    // want leaked when posting photos to the web — the entire reason this
+    // tool re-encodes from raw pixels.
+    const inPath = path.join(tmpDir, 'with-exif.jpg');
+    await sharp({
+      create: { width: 600, height: 400, channels: 3, background: { r: 30, g: 60, b: 90 } },
+    })
+      .withExif({
+        IFD0: { Make: 'TestCamera', Model: 'OddbitsTestRig' },
+        GPS: { GPSLatitudeRef: 'N', GPSLongitudeRef: 'E' },
+      })
+      .jpeg()
+      .toFile(inPath);
+
+    const srcMeta = await sharp(inPath).metadata();
+    assert.ok(srcMeta.exif, 'fixture must actually contain EXIF or the test is meaningless');
+
+    // Re-encode to a different format so we know we're not just passing
+    // bytes through — the metadata strip happens in the encode step.
+    const r = await processImage(inPath, { format: 'webp' });
+    const outBuf = Buffer.from(await r.toArrayBuffer());
+    const outMeta = await sharp(outBuf).metadata();
+
+    assert.equal(outMeta.exif, undefined, 'output must not contain EXIF');
+    assert.equal(outMeta.iptc, undefined, 'output must not contain IPTC');
+    assert.equal(outMeta.xmp, undefined, 'output must not contain XMP');
+  });
+
+  it('output orientation tag is absent (auto-orient applied + stripped)', async () => {
+    // We can't easily forge a fixture with non-1 EXIF orientation through
+    // sharp itself (it normalizes orientation when baking rotations). The
+    // observable invariant we DO care about is that nothing post-processing
+    // carries an orientation tag — the pixels speak for themselves.
+    const r = await processImage(pngPathA, { format: 'webp' });
+    const outBuf = Buffer.from(await r.toArrayBuffer());
+    const outMeta = await sharp(outBuf).metadata();
+    assert.equal(outMeta.orientation, undefined);
+  });
+});
+
 describe('processImages (Node)', () => {
   it('processes a batch sequentially', async () => {
     const results = await processImages([pngPathA, pngPathB], {

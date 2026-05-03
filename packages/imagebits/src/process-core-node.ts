@@ -167,7 +167,19 @@ export async function processImageNode(
   const { maxDimension, format, quality = 0.92 } = options;
   const { buffer: srcBuffer, sourceName } = await inputToBuffer(input);
 
-  let pipeline = sharp(srcBuffer);
+  // Privacy guarantee — every output is re-encoded from raw pixels with no
+  // metadata copied through:
+  //   - sharp's default behavior strips EXIF/IPTC/XMP and the source ICC
+  //     profile unless `withMetadata()`/`keepExif()`/`keepIccProfile()` is
+  //     called. We never call those.
+  //   - `.rotate()` (no arg) reads the EXIF orientation tag, applies the
+  //     rotation to the pixel data, then drops the orientation tag itself —
+  //     so portraits stay upright but the EXIF bytes still get stripped.
+  //   - Anything that could leak (camera model, GPS coordinates, original
+  //     capture timestamps, photographer copyright) is gone after this pass.
+  // This matches the browser canvas pipeline, which can't preserve metadata
+  // by definition.
+  let pipeline = sharp(srcBuffer).rotate();
   const meta = await pipeline.metadata();
 
   if (

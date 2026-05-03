@@ -36,6 +36,8 @@ type ParsedCli = {
   zip?: string;
   concurrency: number;
   quiet: boolean;
+  renamePrefix?: string;
+  renameStart: number;
 };
 
 function printHelp(): void {
@@ -59,6 +61,9 @@ Options:
   --alt-json <path>          Write combined alt-text manifest JSON to this path
                              (default: alt-text.json next to the first output)
   --alt-model <name>         Local caption model id (default: Xenova/vit-gpt2-image-captioning)
+  --rename-prefix <name>     Bulk rename outputs to <prefix>-N.<ext>, in input order.
+                             Only applied when there is more than one output.
+  --rename-start <n>         Starting index for --rename-prefix (default: 1)
   --zip <path>               Bundle all outputs (and the alt-text manifest if any)
                              into a single .zip archive at this path
   --concurrency <n>          Parallelism (default: 1 — sequential)
@@ -67,12 +72,18 @@ Options:
   -h, --help                 Show help
   -v, --version              Print version
 
+Privacy:
+  Every output is re-encoded from raw pixels, so EXIF (incl. GPS/location),
+  IPTC, XMP, and color profile metadata from the source are dropped. EXIF
+  orientation is honored before the re-encode so portraits stay upright.
+
 Examples:
   imagebits photo.png -o photo.webp -f webp -m 1200 -q 0.9
   imagebits *.png -f webp -o ./out/
   imagebits ./src/images -r -f webp -o ./dist/images/
   imagebits ./photos -r --alt-text local --alt-json ./photos/alt-text.json
   imagebits ./photos -r -f webp --zip ./photos.zip
+  imagebits ./photos -r -f webp --rename-prefix beach --rename-start 1 -o ./out/
 `);
 }
 
@@ -114,6 +125,8 @@ function parseArgs(argv: string[]): ParsedCli {
   let zip: string | undefined;
   let concurrency = 1;
   let quiet = false;
+  let renamePrefix: string | undefined;
+  let renameStart = 1;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
@@ -184,6 +197,22 @@ function parseArgs(argv: string[]): ParsedCli {
       zip = v;
       continue;
     }
+    if (a === '--rename-prefix') {
+      const v = argv[++i];
+      if (!v) throw new Error('Missing value for --rename-prefix');
+      renamePrefix = v;
+      continue;
+    }
+    if (a === '--rename-start') {
+      const v = argv[++i];
+      if (!v) throw new Error('Missing value for --rename-start');
+      const n = Number(v);
+      if (!Number.isFinite(n) || !Number.isInteger(n)) {
+        throw new Error(`Invalid --rename-start "${v}". Use an integer.`);
+      }
+      renameStart = n;
+      continue;
+    }
     if (a === '--concurrency') {
       const v = argv[++i];
       if (!v) throw new Error('Missing value for --concurrency');
@@ -214,7 +243,23 @@ function parseArgs(argv: string[]): ParsedCli {
     zip,
     concurrency,
     quiet,
+    renamePrefix,
+    renameStart,
   };
+}
+
+/**
+ * Strip path-hostile characters so a user-supplied prefix can't escape the
+ * output directory or break zip-entry naming. Mirrors the web component's
+ * `sanitizeStem` so the CLI and browser produce the same shape of names.
+ */
+function sanitizePrefix(raw: string): string {
+  const cleaned = raw
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned;
 }
 
 /**
@@ -377,6 +422,24 @@ async function runCli(parsed: ParsedCli): Promise<void> {
       : commonRoot(expanded);
 
   const plans = planOutputs(expanded, parsed.output, parsed.format, root);
+
+  // Bulk rename: only meaningful when there's more than one output, mirroring
+  // the web UI's "rename is hidden for single file" behavior. Rewrite each
+  // plan's basename to `<prefix>-N<ext>` while keeping its directory + ext.
+  if (parsed.renamePrefix !== undefined && plans.length > 1) {
+    const prefix = sanitizePrefix(parsed.renamePrefix);
+    if (!prefix) {
+      throw new Error(
+        `Invalid --rename-prefix "${parsed.renamePrefix}". Provide a non-empty value with no path separators or control characters.`,
+      );
+    }
+    for (let i = 0; i < plans.length; i++) {
+      const plan = plans[i]!;
+      const dir = path.dirname(plan.output);
+      const ext = path.extname(plan.output);
+      plan.output = path.join(dir, `${prefix}-${parsed.renameStart + i}${ext}`);
+    }
+  }
 
   if (!parsed.quiet) {
     console.log(`imagebits: processing ${plans.length} file(s)...`);

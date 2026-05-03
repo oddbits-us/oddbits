@@ -120,4 +120,87 @@ describe('CLI', () => {
     const head = fs.readFileSync(zipPath).subarray(0, 4);
     assert.deepEqual([head[0], head[1], head[2], head[3]], [0x50, 0x4b, 0x03, 0x04]);
   });
+
+  it('--rename-prefix renames bulk outputs to <prefix>-N.<ext>', () => {
+    const outDir = path.join(tmpDir, 'renamed');
+    const res = run([
+      srcDir,
+      '-r',
+      '-f',
+      'webp',
+      '-m',
+      '200',
+      '--rename-prefix',
+      'beach',
+      '-o',
+      outDir,
+      '--quiet',
+    ]);
+    assert.equal(res.status, 0, res.stderr);
+    // Output is flat under outDir with sequential names; the original
+    // a.png + nested/b.png inputs become beach-1.webp + beach-2.webp.
+    assert.ok(fs.existsSync(path.join(outDir, 'beach-1.webp')));
+    assert.ok(fs.existsSync(path.join(outDir, 'nested', 'beach-2.webp')));
+  });
+
+  it('--rename-start sets the starting index', () => {
+    const outDir = path.join(tmpDir, 'renamed-start');
+    const res = run([
+      srcDir,
+      '-r',
+      '-f',
+      'webp',
+      '-m',
+      '200',
+      '--rename-prefix',
+      'img',
+      '--rename-start',
+      '10',
+      '-o',
+      outDir,
+      '--quiet',
+    ]);
+    assert.equal(res.status, 0, res.stderr);
+    assert.ok(fs.existsSync(path.join(outDir, 'img-10.webp')));
+    assert.ok(fs.existsSync(path.join(outDir, 'nested', 'img-11.webp')));
+  });
+
+  it('--rename-prefix is ignored for single-file inputs', () => {
+    const out = path.join(tmpDir, 'a.webp');
+    const res = run([
+      path.join(srcDir, 'a.png'),
+      '-o',
+      out,
+      '-f',
+      'webp',
+      '-m',
+      '200',
+      '--rename-prefix',
+      'unused',
+      '--quiet',
+    ]);
+    assert.equal(res.status, 0, res.stderr);
+    // Single file: the explicit -o path wins, prefix is a no-op.
+    assert.ok(fs.existsSync(out));
+    assert.ok(!fs.existsSync(path.join(tmpDir, 'unused-1.webp')));
+  });
+
+  it('rejects an empty --rename-prefix value (path-only chars)', () => {
+    const outDir = path.join(tmpDir, 'rejected');
+    const res = run([
+      srcDir,
+      '-r',
+      '-f',
+      'webp',
+      '-m',
+      '200',
+      '--rename-prefix',
+      '/',
+      '-o',
+      outDir,
+      '--quiet',
+    ]);
+    assert.notEqual(res.status, 0);
+    assert.match(res.stderr, /Invalid --rename-prefix/);
+  });
 });

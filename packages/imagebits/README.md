@@ -56,7 +56,7 @@ const results = await processImages(['a.png', 'b.png', 'c.png'], {
 
 ## CLI (`npx`)
 
-The same `processImages` engine powers the CLI. Shell globs (`*.png`) work out of the box; pass a directory plus `-r` for recursive walks; combine with `--alt-text` for a manifest, and `--zip` to bundle the lot into one archive.
+The same `processImages` engine powers the CLI. Shell globs (`*.png`) work out of the box; pass a directory plus `-r` for recursive walks; use `--rename-prefix` / `--rename-start` for sequential output names when processing more than one file; combine with `--alt-text` for a manifest, and `--zip` to bundle the lot into one archive.
 
 ```bash
 # single image
@@ -74,6 +74,9 @@ npx @oddbits/imagebits ./photos -r --alt-text local --alt-json ./photos/alt-text
 # bulk + manifest, all packed into a single zip artifact
 npx @oddbits/imagebits ./photos -r -f webp --alt-text local --zip ./photos.zip
 
+# bulk rename to "<prefix>-N.webp" in input order
+npx @oddbits/imagebits ./photos -r -f webp --rename-prefix beach --rename-start 1 -o ./out/
+
 # parallel, keep stdout quiet
 npx @oddbits/imagebits ./photos -r -f webp --concurrency 8 --quiet
 ```
@@ -88,6 +91,8 @@ npx @oddbits/imagebits ./photos -r -f webp --concurrency 8 --quiet
 | `--alt-text <mode>` | `off` \| `local` (local captioning, no API keys) |
 | `--alt-json <path>` | Combined manifest output path (default: `alt-text.json` next to first output) |
 | `--alt-model <id>` | Override the local caption model |
+| `--rename-prefix <name>` | Bulk rename outputs to `<prefix>-N.<ext>` in input order. No-op for single-file runs. |
+| `--rename-start <n>` | Starting index for `--rename-prefix` (default `1`) |
 | `--zip <path>` | Bundle outputs + manifest into a single `.zip` |
 | `--concurrency <n>` | Parallelism (default `1`) |
 | `--quiet` | Minimal output |
@@ -225,6 +230,18 @@ const result = await processImage('https://example.com/image.jpg', {
   format: 'webp',
 });
 ```
+
+## Privacy / metadata
+
+Every output is re-encoded from raw pixels, so the source's **EXIF** (including
+GPS / location), **IPTC**, **XMP**, and embedded **ICC color profile** are
+dropped — none of them ride along into the output file. There is no flag to
+keep them; this is the project's bulk-for-the-web default.
+
+EXIF orientation is the one tag we *use*: the Node pipeline calls
+`sharp().rotate()` so portrait photos stay upright, then drops the orientation
+tag along with the rest of the EXIF. The browser pipeline encodes from the
+canvas, which can't preserve metadata in the first place.
 
 ## Supported formats
 
