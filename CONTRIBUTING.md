@@ -28,15 +28,16 @@ Examples:
 
 ```
 feat(imagebits): add lossless PNG flag
+feat(gifbits): cap fps in encode plan
 fix(core): correct plugin registration order
 ```
 
-Scopes (`feat(core):`, `feat(imagebits):`, etc.) are optional but help map changes to packages.
+Scopes (`feat(core):`, `feat(imagebits):`, `feat(gifbits):`, etc.) are optional but help map changes to packages.
 
 ### Releases
 
 1. Push conventional commits to `main`.
-2. Release Please opens or updates a **release PR** with version bumps and `CHANGELOG.md` updates (including workspace dependency sync between `@oddbits/core` and `@oddbits/imagebits`).
+2. Release Please opens or updates a **release PR** with version bumps and `CHANGELOG.md` updates (including workspace dependency sync across `@oddbits/*` packages where applicable).
 3. When you **merge** that PR, GitHub releases and tags are created automatically.
 
 **Publishing to npm** is optional until you turn it on:

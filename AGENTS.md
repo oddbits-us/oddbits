@@ -46,8 +46,8 @@ The full four-surface pattern is documented in `apps/web/UI_THEME.md` and
 `.cursor/rules/bit-architecture.mdc`. Read both before adding desktop UI.
 
 Naming convention: package names always end in `bits` and live under the
-`@oddbits/` npm scope. Examples: `@oddbits/imagebits`, `@oddbits/colorbits`,
-`@oddbits/clipbits`. Custom-element tags follow `<odd-{name}bits>`.
+`@oddbits/` npm scope. Examples: `@oddbits/imagebits`, `@oddbits/gifbits`,
+`@oddbits/colorbits`, `@oddbits/clipbits`. Custom-element tags follow `<odd-{name}bits>`.
 
 ## Where to look first
 
@@ -62,7 +62,8 @@ Read these in order whenever you start a new task in this repo:
 6. **`.cursor/rules/bit-architecture.mdc`** — the bit pattern in checklist
    form. Auto-loaded by Cursor for `apps/web/**` and `packages/**` edits.
 7. **`packages/imagebits/`** + **`apps/web/src/components/imagebits.ts`** —
-   the canonical reference. Mirror its shape for new bits.
+   the canonical reference for most bits; **`gifbits`** is a second full-web
+   example when the workshop is ffmpeg-heavy. Mirror their shape for new bits.
 
 ## Doing things the right way
 

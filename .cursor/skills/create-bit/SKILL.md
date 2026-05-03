@@ -105,7 +105,7 @@ For **`minimal-web`**:
 For **`full-web`**:
 
 1. Steps 1–2 as above, plus `<odd-{name}bits></odd-{name}bits>` in the desktop window content and a `?` help button.
-2. Create `apps/web/src/components/{name}bits.ts` extending `BitElement`. Mirror `apps/web/src/components/imagebits.ts`. Required overrides: `renderShell()`, `initializeBitElements()`, `attachBitListeners()`, `isWorkshopDirty()`, `resetWorkshopState()`. Override `getHostWindowSelector()` to return `'#window-{name}bits'` and `getVersion()` to return the imported `VERSION` constant.
+2. Create `apps/web/src/components/{name}bits.ts` extending `BitElement`. Mirror `apps/web/src/components/imagebits.ts`. For a large workshop (logs, long-running encode, Readme-style help), also skim `gifbits.ts`. Required overrides: `renderShell()`, `initializeBitElements()`, `attachBitListeners()`, `isWorkshopDirty()`, `resetWorkshopState()`. Override `getHostWindowSelector()` to return `'#window-{name}bits'` and `getVersion()` to return the imported `VERSION` constant.
 3. Required CSS classes inside `renderShell()`: `.bit-shell`, `.bit-workshop`, `.bit-workshop-close`, `.bit-drag-handle`, optionally `.bit-help-dialog`/`.bit-help-close`/`.bit-confirm-backdrop`/`.bit-confirm-cancel`/`.bit-confirm-accept`.
 4. Add `import './components/{name}bits';` to `apps/web/src/main.ts`.
 5. **Reuse the design system**, never duplicate. Buttons/inputs/sliders/popovers/combos/alert modals all have classes already in the top of `apps/web/src/styles.css`. If you find yourself re-styling padding/background/border on a button or input, stop — the class already exists.

@@ -1,16 +1,23 @@
 # @oddbits/gifbits
 
-Crop a clip to **16:9**, **1:1**, or **9:16**, trim it, choose an output **frame rate**, and export **animated WebP** (default in the Oddbits browser workshop), **AVIF**, **GIF**, or a **PNG image sequence** zipped under `images/frame_0001.png`, … — planned so you can run the same filters in **ffmpeg.wasm** (Oddbits workshop) or **desktop ffmpeg** (CLI).
+Crop a clip to **16:9**, **1:1**, or **9:16**, trim it, choose an output **frame rate**, and export **animated WebP**, **GIF**, **AVIF**, or a **PNG image sequence** (zip of `images/frame_0001.png`, …). The same encode **plan** runs in **ffmpeg.wasm** on the Oddbits site or with **desktop ffmpeg** via the CLI.
+
+**Where formats are available**
+
+| Surface | Outputs |
+| --- | --- |
+| **Oddbits browser workshop** | Animated WebP (default), GIF, PNG zip. AVIF is **not** offered in wasm (AV1 is too slow for typical sessions). |
+| **CLI / your own ffmpeg** | Defaults match the CLI (`recipe` / `convert`): **AVIF** is the default format there; you can also ask for WebP, GIF, or a PNG sequence recipe. |
 
 Frame rate is explicit (`fps` on the encode plan, default **12**). **`maxDimensionPx`** caps the longest side after crop (same idea as ImageBits `maxDimension` — `scale=WxH:force_original_aspect_ratio=decrease`). **`quality`** (1–100) controls output quality/file size tradeoff (WebP `-q:v`, GIF palette size, AV1 **`-crf`**) and does not change resolution by itself.
 
-**Animated AVIF** needs ffmpeg built with **libaom-av1**. If your wasm/static build omits it, pick WebP or GIF in the workshop.
+**Animated AVIF** needs ffmpeg built with **libaom-av1**. Use the CLI or a local ffmpeg build; the browser workshop does not encode AVIF.
 
 This package does **not** embed ffmpeg in Node; it exports filter graphs and argv builders you can pass to ffmpeg yourself.
 
 ## Oddbits desktop (browser workshop)
 
-On the Oddbits site, open the **GifBits** window and use **How To** / **?** for the in-app guide. The workshop mirrors this README: **`h2` + `.docs-section`** layout (`apps/web/UI_THEME.md`). Encoding uses **ffmpeg.wasm** from `@ffmpeg/core`, bundled by Vite for the web app; nothing is uploaded.
+On the Oddbits site, open the **GifBits** window and use **How To** / **?** for the in-app guide. The workshop mirrors this README: **`h2` + `.docs-section`** layout (`apps/web/UI_THEME.md`). Encoding uses **ffmpeg.wasm** from `@ffmpeg/core`, loaded and bundled by Vite for the web app; nothing is uploaded.
 
 ## Install
 

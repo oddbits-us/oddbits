@@ -25,10 +25,10 @@ Each bit can ship at any of four sizes — pick the smallest that fits the tool:
 | `lib-only` | An npm package with a clean API + tests. |
 | `lib + cli` | Plus a `bin` that you can `npx @oddbits/<bit>` against. |
 | `lib + cli + minimal-web` | Plus a small desktop window with description, source link, and a "use in your project" button. |
-| `lib + cli + full-web` | Plus a full **workshop** dialog with the actual interactive UI (the [`@oddbits/imagebits`](packages/imagebits) shape). |
+| `lib + cli + full-web` | Plus a full **workshop** dialog with the actual interactive UI ([`@oddbits/imagebits`](packages/imagebits) or [`@oddbits/gifbits`](packages/gifbits)). |
 
 Naming convention: the npm package always ends in `bits`
-(`@oddbits/imagebits`, `@oddbits/colorbits`, `@oddbits/clipbits`, …) and the
+(`@oddbits/imagebits`, `@oddbits/gifbits`, `@oddbits/colorbits`, `@oddbits/clipbits`, …) and the
 desktop custom element follows `<odd-{name}bits>`.
 
 ## Privacy & security pledge
@@ -60,6 +60,7 @@ report it via [`SECURITY.md`](SECURITY.md).
 |---|---|---|
 | [`@oddbits/core`](packages/core) | Plugin types + tiny in-memory registry, used by code-level callers. | Node + browser |
 | [`@oddbits/imagebits`](packages/imagebits) | Image resize / optimize / convert (`webp`, `avif`, `png`, `jpg`) and optional local alt-text. | Node (sharp) + browser (Canvas) + CLI |
+| [`@oddbits/gifbits`](packages/gifbits) | Video crop / trim / encode plans for ffmpeg (animated WebP, GIF, AVIF, PNG sequence); wasm workshop on the site, CLI + library elsewhere. | Node + browser (workshop) + CLI |
 
 The browser app at [`apps/web/`](apps/web) is the demo desktop that hosts
 each bit's interactive UI.
@@ -104,7 +105,9 @@ full CLI surface.
    for the checklist version.
 3. Mirror [`packages/imagebits`](packages/imagebits) for the lib + CLI
    shape, and [`apps/web/src/components/imagebits.ts`](apps/web/src/components/imagebits.ts)
-   for the desktop UI shape (web bits extend `BitElement`).
+   for the desktop UI shape (web bits extend `BitElement`). For another full-web
+   reference with a heavier workshop (ffmpeg, logs), compare
+   [`apps/web/src/components/gifbits.ts`](apps/web/src/components/gifbits.ts).
 4. Add your package to [`release-please-config.json`](release-please-config.json)
    with an `extra-files` entry for its `VERSION` constant if you have one.
 5. Open a PR. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for commit/release
@@ -121,6 +124,7 @@ pnpm install        # install everything
 pnpm build          # build all packages
 pnpm dev            # run package watchers + the web app
 pnpm --filter @oddbits/imagebits test    # run a package's tests
+pnpm --filter @oddbits/gifbits test
 ```
 
 ```
@@ -129,6 +133,7 @@ oddbits/
 │   └── web/                  # Desktop demo (Vite, vanilla TS + custom elements)
 ├── packages/
 │   ├── core/                 # @oddbits/core — plugin registry + types
+│   ├── gifbits/              # @oddbits/gifbits — ffmpeg plans + CLI + wasm workshop
 │   └── imagebits/            # @oddbits/imagebits — image lib + CLI
 ├── .cursor/rules/            # Cursor / AI rules (shared with the repo)
 ├── AGENTS.md                 # AI agent brief
