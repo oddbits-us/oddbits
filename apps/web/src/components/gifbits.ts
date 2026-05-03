@@ -30,6 +30,8 @@ import { BitElement } from '../bits/BitElement';
 
 const OUT_WEBP = 'out.webp';
 const OUT_GIF = 'out.gif';
+/** Appended to export basename before the extension (e.g. `clip-gifbits_encode.webp`). */
+const DOWNLOAD_FILENAME_SUFFIX = '-gifbits_encode';
 const MAX_SEQUENCE_FRAMES = 600;
 const MIN_TRIM_GAP_PCT = 0.35;
 /** `-1` exec timeout runs forever; cap WebP/GIF/PNG jobs so a bad decode can’t hang the worker indefinitely. */
@@ -309,7 +311,7 @@ npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --e
     }
     if (this.previewInfo) this.previewInfo.innerHTML = '';
     this.clearLogs();
-    if (this.downloadBtn) this.downloadBtn.disabled = true;
+    this.setDownloadButtonIdle();
     if (this.outputPreview) this.outputPreview.hidden = true;
     void this.cleanupMemfs();
   }
@@ -663,7 +665,7 @@ npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --e
       this.previewVideo.load();
     }
 
-    if (this.downloadBtn) this.downloadBtn.disabled = true;
+    this.setDownloadButtonIdle();
     this.clearLogs();
     this.openWorkshop();
   }
@@ -814,7 +816,7 @@ npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --e
     this.encoding = true;
     this.encodeAbort = false;
     if (this.encodeBtn) this.encodeBtn.disabled = true;
-    if (this.downloadBtn) this.downloadBtn.disabled = true;
+    this.setDownloadButtonIdle();
     this.revokeOutputPreviewUrl();
     this.outputBlob = null;
     this.clearLogs();
@@ -852,7 +854,10 @@ npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --e
       }
 
       if (this.encodeAbort) return;
-      if (this.downloadBtn) this.downloadBtn.disabled = false;
+      if (this.downloadBtn) {
+        this.downloadBtn.disabled = false;
+        this.syncDownloadButtonLabel();
+      }
       this.exportsDownloaded = false;
       this.appendLog('Done.');
       this.showEncodedPreview(previewFormat);
@@ -918,7 +923,30 @@ npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --e
 
   private replaceExt(name: string, ext: string): string {
     const base = name.replace(/\.[^/.]+$/, '');
-    return `${base || 'export'}.${ext}`;
+    return `${(base || 'export') + DOWNLOAD_FILENAME_SUFFIX}.${ext}`;
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
+  }
+
+  private syncDownloadButtonLabel(): void {
+    if (!this.downloadBtn) return;
+    if (!this.outputBlob) {
+      this.downloadBtn.textContent = 'Download';
+      return;
+    }
+    this.downloadBtn.textContent = `Download (${this.formatFileSize(this.outputBlob.size)})`;
+  }
+
+  private setDownloadButtonIdle(): void {
+    if (!this.downloadBtn) return;
+    this.downloadBtn.disabled = true;
+    this.downloadBtn.textContent = 'Download';
   }
 
   private showEncodedPreview(format: AnimatedExportFormat): void {

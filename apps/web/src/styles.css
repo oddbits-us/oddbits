@@ -1564,9 +1564,12 @@ odd-gifbits .gifbits-intro-error {
 .gifbits-trim-handle {
   position: absolute;
   top: 50%;
+  display: block;
   width: 14px;
   height: 22px;
   padding: 0;
+  margin: 0;
+  line-height: 0;
   transform: translate(-50%, -50%);
   border: 2px solid var(--color-border);
   background: linear-gradient(180deg, rgba(0, 240, 255, 0.45) 0%, rgba(0, 180, 200, 0.35) 100%);
@@ -1577,6 +1580,12 @@ odd-gifbits .gifbits-intro-error {
 
 .gifbits-trim-handle:active {
   cursor: grabbing;
+}
+
+/* Keep handles centered: global `button:active { transform: translate(1px,1px) }` must not win here */
+button.gifbits-trim-handle:active:not(:disabled),
+.gifbits-trim-handle:active:not(:disabled) {
+  transform: translate(-50%, -50%);
 }
 
 .gifbits-trim-times {
@@ -1668,8 +1677,6 @@ odd-gifbits .gifbits-intro-error {
 
 .gifbits-output-preview {
   margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-  border-bottom: var(--window-inner-rule);
 }
 
 .gifbits-output-preview-label {
