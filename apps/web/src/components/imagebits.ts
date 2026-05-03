@@ -104,28 +104,30 @@ export class ImageBitsElement extends BitElement {
               </div>
               <div class="imagebits-col imagebits-col-actions">
                 <div class="controls" id="controls">
-                  <div class="control-group">
-                    <label>Max Dimension (px)</label>
-                    <input type="number" id="max-dimension" value="1080" min="1">
-                  </div>
+                  <div class="imagebits-top-controls">
+                    <div class="control-group">
+                      <label for="max-dimension">Max dimension (px)</label>
+                      <input type="number" id="max-dimension" value="1080" min="1">
+                    </div>
 
-                  <div class="control-group">
-                    <label>Format</label>
-                    <select id="format">
-                      <option value="original">Original</option>
-                      <option value="webp">WebP</option>
-                      <option value="avif">AVIF</option>
-                      <option value="png">PNG</option>
-                      <option value="jpg">JPEG</option>
-                    </select>
-                  </div>
+                    <div class="control-group">
+                      <label for="format">Format</label>
+                      <select id="format">
+                        <option value="original">Original</option>
+                        <option value="webp">WebP</option>
+                        <option value="avif">AVIF</option>
+                        <option value="png">PNG</option>
+                        <option value="jpg">JPEG</option>
+                      </select>
+                    </div>
 
-                  <div class="control-group">
-                    <label>
-                      Quality
-                      <span class="range-value" id="quality-value">92%</span>
-                    </label>
-                    <input type="range" id="quality" min="1" max="100" value="92">
+                    <div class="control-group">
+                      <label for="quality">
+                        Quality
+                        <span class="range-value" id="quality-value">92%</span>
+                      </label>
+                      <input type="range" id="quality" min="1" max="100" value="92">
+                    </div>
                   </div>
 
                   <div class="control-group imagebits-alt-control">

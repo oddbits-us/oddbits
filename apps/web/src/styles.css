@@ -2054,7 +2054,33 @@ button.gifbits-trim-handle:active:not(:disabled),
   gap: var(--spacing-md);
 }
 
-.imagebits-workshop-portal .control-group {
+/* Max / format / quality — label left, control right (match GifBits workshop). */
+.imagebits-workshop-portal .imagebits-top-controls {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.imagebits-workshop-portal .imagebits-top-controls .control-group {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(130px, 170px);
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.imagebits-workshop-portal .imagebits-top-controls .control-group > label {
+  margin: 0;
+  text-align: left;
+  justify-self: start;
+  min-width: 0;
+}
+
+.imagebits-workshop-portal .imagebits-top-controls .control-group > select,
+.imagebits-workshop-portal .imagebits-top-controls .control-group > input {
+  justify-self: end;
+  width: min(100%, 170px);
+}
+
+.imagebits-workshop-portal .control-group.imagebits-alt-control {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
