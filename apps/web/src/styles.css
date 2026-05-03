@@ -990,19 +990,17 @@ input[type="range"]::-moz-range-thumb {
   color: var(--color-primary);
   text-shadow: var(--text-glow), 3px 3px 0px rgba(0, 0, 0, 0.8);
   letter-spacing: 1px;
-  text-transform: uppercase;
 }
 
 /* Site-level version chip lifted in the top-right of the hero <h1>. Matches
    the per-bit `[data-bit-version]` titlebar pattern. */
 .oddbits-version {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.32em;
-  font-weight: normal;
+  font-size: 0.525em;
+  font-weight: bold;
   letter-spacing: 0;
   text-transform: none;
   color: inherit;
-  opacity: 0.7;
   margin-left: 0.4em;
   vertical-align: super;
   text-shadow: none;
