@@ -4,7 +4,9 @@
 
 Oddbits is built on a simple promise to its users:
 
-- **No tracking, no analytics, no telemetry** — first-party or third-party.
+- **No tracking, no analytics, no telemetry** — first-party or third-party,
+  in the sense of **no tracker scripts, analytics SDKs, session replay, or
+  product telemetry we ship** in this repo.
 - **No accounts. No API keys. No persistent secret storage.**
 - **No server-side processing of user data.** Bits run in the browser, in
   Node, or via the CLI on the user's machine. User files never leave the
@@ -16,6 +18,14 @@ optional alt-text), the model weights are downloaded once from public CDNs
 (currently Hugging Face + jsdelivr) and cached by the browser. **Inference
 runs locally; user images are never uploaded.** The CSP in `render.yaml`
 allow-lists those origins for fetches only.
+
+**Another nuance (infrastructure):** Loading any website—including this
+one—involves **routine technical metadata** on the internet (for example DNS,
+TLS, hosting, or CDN **access logs** for operations and abuse prevention).
+That is **not** the same as embedding analytics or advertising trackers in the
+app, and it is **not** something Oddbits adds in application code. To skip
+optional third-party requests (for example badge images), use the CLI or npm
+packages without loading the demo site.
 
 Any change that contradicts this pledge is a security-sensitive change and
 must be flagged in the PR. See [`AGENTS.md`](AGENTS.md) for the same rules

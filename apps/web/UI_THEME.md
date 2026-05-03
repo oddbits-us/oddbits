@@ -4,7 +4,7 @@ This doc is the source of truth for **apps/web**: how the faux-desktop shell, wi
 
 ## Project pledges (read first)
 
-Bits inherit non-negotiable constraints from the project: MIT, no uploads, no tracking, no API keys, vanilla TS only, credit your sources. Full version in `AGENTS.md` at the repo root and the `## Project pledges` section of `.cursor/rules/bit-architecture.mdc`. If your change would violate any of them, stop and flag it.
+Bits inherit non-negotiable constraints from the project: MIT, no uploads, no product analytics or trackers we ship, no API keys, vanilla TS only, credit your sources. Full version in `AGENTS.md` at the repo root and the `## Project pledges` section of `.cursor/rules/bit-architecture.mdc`. If your change would violate any of them, stop and flag it.
 
 ## Bit shape variants — pick the smallest that fits
 

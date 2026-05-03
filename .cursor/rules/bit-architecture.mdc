@@ -14,7 +14,9 @@ Bits inherit these constraints from the project:
 
 - MIT licensed, free, no ads, no rate limits.
 - **No server-side processing.** Bits run in the browser, in Node, or via the CLI on the user's machine.
-- **No tracking, no telemetry, no analytics, no data collection.**
+- **No product analytics or trackers we ship** — no telemetry SDKs or analytics
+  scripts for usage measurement; no data collection from user content. (Routine
+  hosting/CDN logs are infrastructure; see `SECURITY.md`.)
 - **No accounts, no API keys, no BYOK surfaces.** If a bit needs a model, it runs locally (e.g. WASM/ONNX via transformers.js).
 - **Minimal dependencies.** Vanilla TypeScript; no UI frameworks for libraries or the desktop shell.
 - **Credit your sources.** Bundled fonts/assets and meaningful deps go in `CREDITS.md` in the same PR.

@@ -68,7 +68,7 @@ For the full pattern (lib + CLI + optional desktop UI), see:
 
 ## Security posture
 
-`@oddbits/core` is plugin-system code only — no I/O, no network, no telemetry. Bits built on top of it inherit the project's privacy pledge: no server-side processing, no tracking, no API key collection, no data leaving the user's machine. See the project's [`SECURITY.md`](https://github.com/oddbits-us/oddbits/blob/main/SECURITY.md) and [`AGENTS.md`](https://github.com/oddbits-us/oddbits/blob/main/AGENTS.md).
+`@oddbits/core` is plugin-system code only — no I/O, no network, no telemetry. Bits built on top of it inherit the project's privacy pledge: no server-side processing, no analytics or tracker scripts we ship, no API key collection, no data leaving the user's machine. See the project's [`SECURITY.md`](https://github.com/oddbits-us/oddbits/blob/main/SECURITY.md) and [`AGENTS.md`](https://github.com/oddbits-us/oddbits/blob/main/AGENTS.md).
 
 ## License
 

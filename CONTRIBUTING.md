@@ -4,7 +4,7 @@ Thanks for thinking about contributing — bug reports, new bits, doc fixes, des
 
 ## Read these first
 
-- [`AGENTS.md`](./AGENTS.md) — the project pledges that apply to every contribution (humans **and** AI agents). MIT, no uploads, no tracking, no BYOK, vanilla TS only, credit your sources.
+- [`AGENTS.md`](./AGENTS.md) — the project pledges that apply to every contribution (humans **and** AI agents). MIT, no uploads, no product analytics or trackers we ship, no BYOK, vanilla TS only, credit your sources.
 - [`apps/web/UI_THEME.md`](./apps/web/UI_THEME.md) — required reading before you touch `apps/web/**`.
 - [`.cursor/rules/bit-architecture.mdc`](./.cursor/rules/bit-architecture.mdc) — the bit pattern in checklist form. Cursor auto-loads it.
 

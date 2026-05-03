@@ -38,8 +38,12 @@ exists.
 
 - **Your files never leave your machine.** All processing happens in the
   browser, in Node, or via the CLI on your computer.
-- **No tracking. No analytics. No telemetry.** First-party or third-party.
-  Open the network tab and see for yourself.
+- **No tracking. No analytics. No telemetry** — meaning **no** tracker scripts,
+  analytics SDKs, session replay, or product telemetry **from this project**.
+  First-party or third-party in that sense. On the demo site, open the network
+  tab: we are not loading GA, PostHog, etc. **Routine logs** from hosting,
+  CDNs, or DNS when you load a page are ordinary internet plumbing, not
+  telemetry we ship; see [`SECURITY.md`](SECURITY.md).
 - **No accounts. No API keys. No "BYOK" surfaces.** If a bit needs a model,
   it runs locally (e.g. WASM/ONNX via [transformers.js](https://github.com/huggingface/transformers.js)).
 - **No server-side processing.** Oddbits as a project never spins up a

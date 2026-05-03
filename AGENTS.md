@@ -15,8 +15,11 @@ explicit human OK and a written rationale in the PR.
 2. **No server-side processing.** Every bit runs in the user's browser, in
    Node, or on the user's machine via the CLI. Oddbits as a project never
    spins up a backend that holds user content.
-3. **No tracking. No telemetry. No analytics.** Not first-party, not
-   third-party. Don't add Sentry, PostHog, GA, Plausible, Segment, etc.
+3. **No tracking. No telemetry. No analytics** — no tracker scripts,
+   analytics SDKs, session replay, or product telemetry **we ship**. Not
+   first-party, not third-party in that sense. Don't add PostHog, GA,
+   Plausible-as-product-analytics, Segment, etc. (Routine CDN/host access logs
+   are infrastructure, not Oddbits telemetry; see `SECURITY.md`.)
 4. **No data collection.** User files, prompts, and inputs never leave the
    user's machine. Think drag-in → workshop → useful output, never upload.
 5. **No BYOK / API key surfaces** in any tool that ships in this repo. If a
