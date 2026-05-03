@@ -168,45 +168,39 @@ export class GifBitsElement extends BitElement {
             <h2 id="gifbits-help-heading">GifBits</h2>
             <div class="docs-section">
               <p>
-                Default export is <strong>animated AVIF</strong> (AV1 in an AVIF container). GifBits runs <a href="https://ffmpegwasm.netlify.app/" target="_blank" rel="noopener noreferrer">ffmpeg</a>
-                in your browser via WebAssembly (same engines as the CLI recipes). Your video never leaves your device.
+                Turn video into <strong>animated AVIF</strong> (default), WebP, GIF, or a PNG zip. GifBits runs
+                <a href="https://ffmpegwasm.netlify.app/" target="_blank" rel="noopener noreferrer">ffmpeg</a>
+                in WebAssembly in this tab — your file never uploads.
+              </p>
+              <p>
+                Use the workshop for crop, clip range, fps, quality, and format. If AVIF fails, try WebP or GIF (wasm may lack AV1).
               </p>
             </div>
             <div class="docs-section">
-              <h3>Workshop</h3>
-              <ul>
-                <li><strong>Crop ratio</strong> — center-crops to 16:9, 1:1, or 9:16 before scaling.</li>
-                <li><strong>Clip start / end</strong> — sliders span the full clip; end must stay after start.</li>
-                <li><strong>Frame rate</strong> — output fps after crop/scale (default 12; lower for smaller files, higher for smoother motion).</li>
-                <li><strong>Quality</strong> — resolution and encoder strength (not the same as fps).</li>
-                <li><strong>Image sequence</strong> — PNG frames in a zip (<code>images/frame_0001.png</code>, …). Large clips hit a frame cap; shorten the video or lower fps.</li>
-              </ul>
+              <h3>In your code</h3>
+              <pre><code>npm install @oddbits/gifbits
+
+import { describeRecipe } from '@oddbits/gifbits';
+
+const plan = { cropRatio: '9:16', trimStart: 0, trimEnd: 6,
+  quality: 75, fps: 12, format: 'avif' as const };
+console.log(describeRecipe(plan, 'in.mp4', 'out.avif'));</code></pre>
             </div>
             <div class="docs-section">
-              <h3>Output formats</h3>
-              <ul>
-                <li><strong>Animated AVIF</strong> — modern, efficient; needs a current browser; requires ffmpeg with <code>libaom-av1</code>.</li>
-                <li><strong>Animated WebP</strong> — broad support; often smaller than GIF; transparency.</li>
-                <li><strong>GIF</strong> — universal fallbacks; larger files; palette.</li>
-                <li><strong>Image sequence</strong> — numbered PNGs in a zip for compositing or your own tooling.</li>
-              </ul>
-            </div>
-            <div class="docs-section">
-              <h3>CLI (desktop ffmpeg)</h3>
-              <p>Print a command without running anything (defaults match the workshop: <code>--format avif</code>, <code>--fps 12</code>):</p>
-              <pre><code>npx @oddbits/gifbits recipe --ratio 9:16 --start 0 --end 5 --format avif --quality 75 --fps 12</code></pre>
-              <p>If <code>ffmpeg</code> is on your <code>PATH</code>, <code>gifbits convert</code> runs AVIF, WebP, or GIF. PNG zip exports are workshop-only; <code>recipe --format image-sequence</code> prints the ffmpeg line for a frame sequence.</p>
+              <h3>From the CLI</h3>
+              <pre><code>npx @oddbits/gifbits recipe --ratio 9:16 --start 0 --end 4 --format avif --fps 12
+npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --end 5</code></pre>
             </div>
             <div class="docs-section">
               <h3>Privacy</h3>
               <p class="gifbits-help-privacy">
-                No accounts, no upload, no telemetry. Encoding happens in this tab (wasm) or in your own ffmpeg process when you use the CLI.
+                No accounts or telemetry — encoding stays on your device (wasm here or ffmpeg on your machine).
               </p>
             </div>
             <div class="docs-section">
               <p>
-                Full flags, caveats, and source:
-                <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/gifbits/README.md" target="_blank" rel="noopener noreferrer">packages/gifbits/README.md</a>
+                Full options and caveats on
+                <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/gifbits/README.md" target="_blank" rel="noopener noreferrer">GitHub</a>.
               </p>
             </div>
           </div>
@@ -246,7 +240,7 @@ export class GifBitsElement extends BitElement {
   }
 
   protected getHelpMinSize(): { width: number; height: number } {
-    return { width: 400, height: 280 };
+    return { width: 360, height: 300 };
   }
 
   protected isWorkshopDirty(): boolean {

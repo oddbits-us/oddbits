@@ -99,6 +99,8 @@ Required CSS classes in your `renderShell()` HTML — `BitElement` discovers ele
 - `.bit-drag-handle` — workshop titlebar (drag region)
 - `.bit-help-dialog` — help dialog (optional; combine with `.window`)
 - `.bit-help-close` — help dialog X button (optional)
+
+**Help dialog copy:** keep How To content **short** and **high-level** (in-app orientation). Match length/shape guidance in `apps/web/UI_THEME.md` (**Help dialog — content & length**). Link to `packages/{name}bits/README.md` on GitHub for full CLI/API docs — do not paste the README into the dialog.
 - `.bit-confirm-backdrop` — alert/confirm modal backdrop (optional)
 - `.bit-confirm-cancel` / `.bit-confirm-accept` — confirm buttons (optional)
 

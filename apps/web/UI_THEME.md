@@ -119,9 +119,20 @@ Use ImageBits as the baseline pattern for all new bits unless a bit has a strong
 4. **Action row**: compact Windows-style buttons (1-2 word labels), usually:
    - `Source` (GitHub docs/source)
    - `How To` (opens bit-specific help dialog)
-5. **Help dialog**: draggable/resizable `.window` dialog with concise usage examples and tips.
+5. **Help dialog**: draggable/resizable `.window` dialog — keep copy **high-level**; full flags and examples belong on **GitHub** (see **Help dialog — content & length** below).
 
 Keep this structure visually consistent across bits so users can instantly orient themselves.
+
+## Help dialog — content & length (How To / `BitElement`)
+
+The **How To** window is for **orientation**, not a replacement for the package README.
+
+- **Length**: Use **ImageBits** (`apps/web/src/components/imagebits.ts`, help markup) as a **rough upper bound** — short intro, a few **`h3`** sections, and **small** `<pre><code>` blocks (handful of lines each). If it reads like a tutorial chapter, trim prose and add a **GitHub** link to `packages/{name}bits/README.md`.
+- **Shape**: Prefer an optional **`h2`** title plus stacked **`.docs-section`** blocks (same Readme-style rhythm as `#window-docs` and **GifBits** help). **ImageBits** uses a slightly flatter **`h3` + `pre`** layout without `.docs-section`; either pattern is fine — pick one and stay consistent within the bit.
+- **What to include**: What the tool does locally (wasm / CLI), **In your code** (minimal import + one API call) and **From the CLI** (one `recipe`-style and one `convert`-style line when applicable), **Privacy** in one short block, then **Full docs on GitHub**.
+- **What to defer**: Exhaustive option lists, long shell transcripts, encoder caveats — summarize in one line if needed, detail on GitHub.
+- **Typography / markup**: Follow the **Bit help dialog** row in **Content patterns** below (`h3`, `p`, `ul`, `pre`). Long lines in `<pre>` wrap via help-dialog **`pre`** rules in `styles.css`.
+- **Default size**: Override **`getHelpMinSize()`** in the web component so the dialog fits without excessive empty chrome; **~360×220–360×320** is typical depending on section count.
 
 ## Content patterns inside `.window-content`
 
