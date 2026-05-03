@@ -1228,6 +1228,25 @@ section h2,
   line-height: 1.45;
 }
 
+.bit-intro {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.bit-intro-icon {
+  font-size: 2.85rem;
+  line-height: 1;
+  flex-shrink: 0;
+  font-family: 'SerenityOS-Emoji';
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8);
+}
+
+.bit-intro-copy {
+  flex: 1;
+  min-width: 0;
+}
+
 .bit-intro h3 {
   margin: 0 0 var(--spacing-xs);
 }
@@ -2302,6 +2321,20 @@ button.gifbits-trim-handle:active:not(:disabled),
   }
 
   .tool-icon {
+    margin: 0 auto;
+  }
+
+  .bit-intro {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .bit-intro-copy {
+    text-align: center;
+  }
+
+  .bit-intro-icon {
     margin: 0 auto;
   }
 }
