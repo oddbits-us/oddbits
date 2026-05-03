@@ -1,11 +1,11 @@
 # Oddbits
 
 > A growing collection of small, useful tools (**bits**) that run entirely in
-> your browser, on your terminal, or inside your own code. No servers, no
+> your browser, on your terminal, or inside your own code. No uploads, no
 > tracking, no accounts, no API keys. MIT licensed. Use it if you find it
 > useful.
 
-[Try it in the browser →](https://github.com/oddbits-us/oddbits)
+[Try it in the browser →](https://oddbits.onrender.com/)
 &nbsp;·&nbsp;
 [Read the bit pattern →](apps/web/UI_THEME.md)
 &nbsp;·&nbsp;
@@ -72,7 +72,7 @@ I don't want your data or your money — just the quiet satisfaction of making s
 |---|---|---|
 | [`@oddbits/core`](packages/core) | Plugin types + tiny in-memory registry, used by code-level callers. | Node + browser |
 | [`@oddbits/imagebits`](packages/imagebits) | Resize / convert (`webp`, `avif`, `png`, `jpg`); strips embedded metadata by re-encoding; optional local alt-text and CLI bulk rename. | Node (sharp) + browser (Canvas) + CLI |
-| [`@oddbits/gifbits`](packages/gifbits) | Video crop / trim / encode plans for ffmpeg (animated WebP, GIF, AVIF, PNG sequence); wasm workshop on the site, CLI + library elsewhere. | Node + browser (workshop) + CLI |
+| [`@oddbits/gifbits`](packages/gifbits) | **Browser workshop:** crop / trim / encode with ffmpeg.wasm — animated WebP, GIF, or PNG zip. **CLI / library:** same encode plans for desktop ffmpeg, including **AVIF** (CLI default). | Node + browser (workshop) + CLI |
 
 The browser app at [`apps/web/`](apps/web) is the demo desktop that hosts
 each bit's interactive UI.

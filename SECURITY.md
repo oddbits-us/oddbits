@@ -27,6 +27,7 @@ Security updates are currently provided for the latest published versions of:
 
 - `@oddbits/core`
 - `@oddbits/imagebits`
+- `@oddbits/gifbits`
 
 ## Reporting a vulnerability
 
@@ -58,6 +59,7 @@ We follow coordinated disclosure and will credit reporters (unless anonymity is 
 
 - The hosted website is configured with strict security headers and CSP via `render.yaml`.
 - ImageBits caption generation on the website is local-only and does not accept or persist user API keys.
+- GifBits video encoding on the website runs in **ffmpeg.wasm** in the browser — user media is not uploaded for processing.
 - If a proposed change introduces credential capture, external model endpoints, or CSP relaxation, treat it as a security-sensitive change and document rationale in the PR.
 - Validate deployed header posture with both:
   - `https://securityheaders.com/?q=<site-url>&followRedirects=on`

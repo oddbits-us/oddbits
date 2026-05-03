@@ -11,7 +11,7 @@ Use this skill whenever the user wants to add a new bit to the repo. A "bit" is 
 
 Before scaffolding anything, open and follow:
 
-1. `AGENTS.md` — non-negotiable project pledges (MIT, no servers, no tracking, no BYOK, etc.).
+1. `AGENTS.md` — non-negotiable project pledges (MIT, no uploads, no tracking, no BYOK, etc.).
 2. `.cursor/rules/bit-architecture.mdc` — bit pattern in checklist form.
 3. `apps/web/UI_THEME.md` — desktop shell + design system + bit shape variants.
 
