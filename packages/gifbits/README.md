@@ -1,8 +1,8 @@
 # @oddbits/gifbits
 
-Crop a clip to **16:9**, **1:1**, or **9:16**, trim it, choose an output **frame rate**, and export **animated AVIF** (default in the Oddbits workshop), **WebP**, **GIF**, or a **PNG image sequence** zipped under `images/frame_0001.png`, … — planned so you can run the same filters in **ffmpeg.wasm** (Oddbits workshop) or **desktop ffmpeg** (CLI).
+Crop a clip to **16:9**, **1:1**, or **9:16**, trim it, choose an output **frame rate**, and export **animated WebP** (default in the Oddbits browser workshop), **AVIF**, **GIF**, or a **PNG image sequence** zipped under `images/frame_0001.png`, … — planned so you can run the same filters in **ffmpeg.wasm** (Oddbits workshop) or **desktop ffmpeg** (CLI).
 
-Frame rate is explicit (`fps` on the encode plan, default **12**). **Quality** drives resolution and codec knobs (short side, WebP `-q:v`, GIF palette size, AV1 **`-crf`** via `resolved.avifCrf`), not fps.
+Frame rate is explicit (`fps` on the encode plan, default **12**). **`maxDimensionPx`** caps the longest side after crop (same idea as ImageBits `maxDimension` — `scale=WxH:force_original_aspect_ratio=decrease`). **`quality`** (1–100) controls output quality/file size tradeoff (WebP `-q:v`, GIF palette size, AV1 **`-crf`**) and does not change resolution by itself.
 
 **Animated AVIF** needs ffmpeg built with **libaom-av1**. If your wasm/static build omits it, pick WebP or GIF in the workshop.
 
@@ -10,7 +10,7 @@ This package does **not** embed ffmpeg in Node; it exports filter graphs and arg
 
 ## Oddbits desktop (browser workshop)
 
-On the Oddbits site, open the **GifBits** window and use **How To** / **?** for the in-app guide. The workshop mirrors this README: **`h2` + `.docs-section`** layout (`apps/web/UI_THEME.md`). Encoding uses **ffmpeg.wasm** vendored into `public/vendor/ffmpeg/` at build time; nothing is uploaded.
+On the Oddbits site, open the **GifBits** window and use **How To** / **?** for the in-app guide. The workshop mirrors this README: **`h2` + `.docs-section`** layout (`apps/web/UI_THEME.md`). Encoding uses **ffmpeg.wasm** from `@ffmpeg/core`, bundled by Vite for the web app; nothing is uploaded.
 
 ## Install
 
@@ -34,6 +34,7 @@ const plan: GifBitsEncodePlan = {
   trimStart: 0,
   trimEnd: 6,
   quality: 75,
+  maxDimensionPx: 1080,
   fps: 15,
   format: 'avif',
 };
@@ -50,7 +51,7 @@ For rare pipelines that need a minimal **Bodymovin** JSON over PNG assets, `buil
 
 ## CLI
 
-Defaults match the workshop: **`--format avif`**, **`--fps 12`**.
+CLI defaults: **`--format avif`**, **`--fps 12`** (the browser workshop defaults to **WebP** because AV1 is slow in wasm).
 
 Print a shell-ready ffmpeg command (no local ffmpeg required):
 

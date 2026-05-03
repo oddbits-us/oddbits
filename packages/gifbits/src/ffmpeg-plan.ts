@@ -24,36 +24,78 @@ export function cropRatioToFraction(ratio: CropRatio): { rw: number; rh: number 
 /**
  * Center-crop to the largest rectangle with aspect rw:rh that fits inside the frame.
  * Uses even dimensions for codec friendliness.
+ *
+ * Uses `min()` for w/h (same geometry as center-crop `if(gt(iw/ih,ar)),…)` but fewer commas.
+ * x/y center using output vars (`ow`/`oh`) instead of `w`/`h`; some ffmpeg builds do not
+ * resolve `w`/`h` in x/y expressions and error with "Undefined constant ... in 'w/2'".
+ *
+ * Commas inside `min(a\,b)` must be `\,` or the top-level `-vf` / filter_complex parser
+ * treats them as filter separators.
  */
 export function buildCenterCropFilter(ratio: CropRatio): string {
   const { rw, rh } = cropRatioToFraction(ratio);
   const ar = rw / rh;
   return [
-    `crop=w='trunc(if(gt(iw/ih,${ar}),ih*${rw}/${rh},iw)/2)*2'`,
-    `h='trunc(if(gt(iw/ih,${ar}),ih,iw*${rh}/${rw})/2)*2'`,
-    `x='(iw-w)/2'`,
-    `y='(ih-h)/2'`,
+    `crop=w=trunc(min(iw\\,ih*${ar})/2)*2`,
+    `h=trunc(min(ih\\,iw*${rh}/${rw})/2)*2`,
+    `x=(iw-ow)/2`,
+    `y=(ih-oh)/2`,
   ].join(':');
 }
 
 export function resolveEncodeParams(quality: number): ResolvedEncodeParams {
   const q = Math.min(100, Math.max(1, quality));
-  const shortSide = Math.round(320 + ((q - 1) / 99) * 800);
   const webpQ = Math.round(55 + (q / 100) * 40);
   const gifColors = q >= 75 ? 256 : q >= 45 ? 128 : 64;
   const avifCrf = Math.round(55 - ((q - 1) / 99) * 35);
-  return { shortSide, webpQ, gifColors, avifCrf };
+  return { webpQ, gifColors, avifCrf };
 }
 
-/** Clamp user-requested frame rate for the `fps` filter (1–60). */
+/**
+ * Fit cropped frame inside an `{maxDim}x{maxDim}` box (aspect preserved); matches ImageBits-style max dimension.
+ */
+export function buildScaleToMaxDimension(maxDimensionPx: number): string {
+  const m = Math.max(64, Math.min(4096, Math.round(maxDimensionPx)));
+  // Never upscale: clamp each axis to source-or-max before preserving aspect ratio.
+  return `scale=w=min(iw\\,${m}):h=min(ih\\,${m}):force_original_aspect_ratio=decrease`;
+}
+
+/**
+ * Percent positions (0–100) of the center-crop window over the **full video frame**, for UI overlays.
+ * `videoWidthOverHeight` is intrinsic `video.videoWidth / video.videoHeight`.
+ */
+export function cropRegionPercentages(
+  videoWidthOverHeight: number,
+  ratio: CropRatio,
+): { leftPct: number; topPct: number; widthPct: number; heightPct: number } {
+  const { rw, rh } = cropRatioToFraction(ratio);
+  const C = rw / rh;
+  const V = videoWidthOverHeight;
+  if (!Number.isFinite(V) || V <= 0) {
+    return { leftPct: 0, topPct: 0, widthPct: 100, heightPct: 100 };
+  }
+  if (V >= C) {
+    const widthPct = (C / V) * 100;
+    return {
+      leftPct: (100 - widthPct) / 2,
+      topPct: 0,
+      widthPct,
+      heightPct: 100,
+    };
+  }
+  const heightPct = (V / C) * 100;
+  return {
+    leftPct: 0,
+    topPct: (100 - heightPct) / 2,
+    widthPct: 100,
+    heightPct,
+  };
+}
+
+/** Clamp user-requested frame rate for the `fps` filter (1–30). */
 export function clampPlanFps(fps: number): number {
   if (!Number.isFinite(fps)) return 12;
-  return Math.min(60, Math.max(1, Math.round(fps)));
-}
-
-export function buildScaleFilter(shortSide: number): string {
-  const ss = shortSide;
-  return `scale='trunc(iw*${ss}/min(iw\\,ih)/2)*2':'trunc(ih*${ss}/min(iw\\,ih)/2)*2'`;
+  return Math.min(30, Math.max(1, Math.round(fps)));
 }
 
 export function buildFpsFilter(fps: number): string {
@@ -64,14 +106,14 @@ export function trimDurationSeconds(plan: GifBitsEncodePlan): number {
   return Math.max(0, plan.trimEnd - plan.trimStart);
 }
 
-export function buildVideoFilterChain(plan: GifBitsEncodePlan, resolved: ResolvedEncodeParams): string {
+export function buildVideoFilterChain(plan: GifBitsEncodePlan, _resolved: ResolvedEncodeParams): string {
   const crop = buildCenterCropFilter(plan.cropRatio);
-  const scale = buildScaleFilter(resolved.shortSide);
+  const scale = buildScaleToMaxDimension(plan.maxDimensionPx);
   const fpsFilter = buildFpsFilter(clampPlanFps(plan.fps));
   return [crop, scale, fpsFilter].join(',');
 }
 
-/** Animated AVIF via libaom-av1 (`-still-picture 0`). Requires ffmpeg built with libaom. */
+/** Animated AVIF via libaom-av1. Requires ffmpeg built with libaom. */
 export function buildAnimatedAvifArgs(
   vf: string,
   trimStart: number,
@@ -91,14 +133,12 @@ export function buildAnimatedAvifArgs(
     vf,
     '-c:v',
     'libaom-av1',
-    '-still-picture',
-    '0',
     '-crf',
     String(avifCrf),
     '-b:v',
     '0',
     '-cpu-used',
-    '6',
+    '8',
     '-pix_fmt',
     'yuv420p',
     outputName,

@@ -47,8 +47,8 @@ These ship with the published packages or the deployed website:
   **[`@ffmpeg/util`](https://github.com/ffmpegwasm/ffmpeg.wasm)** (MIT) +
   **[`@ffmpeg/core`](https://github.com/ffmpegwasm/ffmpeg.wasm)**
   (GPL-2.0-or-later) — WebAssembly build of ffmpeg for GifBits in the
-  browser. The wasm binary is vendored from `node_modules` into
-  `apps/web/public/vendor/ffmpeg/` at build time (same-origin; no CDN fetch).
+  browser. Core JS/wasm are bundled from `node_modules` via Vite (`?url`
+  imports; hashed filenames in `dist/assets/`, same-origin; no CDN fetch).
   Per the GPL, the core engine is free software; the MIT Oddbits app links to
   it as a separate component.
 

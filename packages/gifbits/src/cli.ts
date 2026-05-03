@@ -37,8 +37,9 @@ Options:
   --ratio <r>              16:9 | 1:1 | 9:16 (default: 16:9)
   --start <seconds>        Trim start (default: 0)
   --end <seconds>          Trim end (default: start + 10 if omitted)
-  --fps <n>                Frame rate after crop/scale (default: 12; clamped 1–60)
-  --quality <1-100>        Resolution / encoder tradeoff (default: 72)
+  --fps <n>                Frame rate after crop/scale (default: 12; clamped 1–30)
+  --quality <1-100>        Output quality (default: 72)
+  -m, --max-dimension <px> Longest side after crop; fit inside box (default: 1080)
   --format <f>             avif | webp | gif | image-sequence (default: avif)
   -h, --help               Show help
   -v, --version            Print version
@@ -84,6 +85,7 @@ function parseArgs(argv: string[]): {
   let end: number | undefined;
   let fps = 12;
   let quality = 72;
+  let maxDimensionPx = 1080;
   let format: AnimatedExportFormat = 'avif';
 
   const rest = [...argv];
@@ -125,12 +127,19 @@ function parseArgs(argv: string[]): {
     }
     if (a === '--fps') {
       fps = parseNum('--fps', shift() ?? '');
-      if (fps < 1 || fps > 60) throw new Error('--fps must be between 1 and 60.');
+      if (fps < 1 || fps > 30) throw new Error('--fps must be between 1 and 30.');
       continue;
     }
     if (a === '--quality') {
       quality = parseNum('--quality', shift() ?? '');
       if (quality < 1 || quality > 100) throw new Error('--quality must be between 1 and 100.');
+      continue;
+    }
+    if (a === '-m' || a === '--max-dimension') {
+      maxDimensionPx = parseNum('--max-dimension', shift() ?? '');
+      if (maxDimensionPx < 64 || maxDimensionPx > 4096) {
+        throw new Error('--max-dimension must be between 64 and 4096.');
+      }
       continue;
     }
     if (a === '--format') {
@@ -152,6 +161,7 @@ function parseArgs(argv: string[]): {
     trimStart: start,
     trimEnd: end,
     quality,
+    maxDimensionPx,
     fps,
     format,
   };

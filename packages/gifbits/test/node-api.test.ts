@@ -10,7 +10,10 @@ import { describe, it } from 'node:test';
 import {
   argvToShell,
   buildCenterCropFilter,
+  clampPlanFps,
+  buildScaleToMaxDimension,
   buildVideoFilterChain,
+  cropRegionPercentages,
   describeRecipe,
   resolveEncodeParams,
   trimDurationSeconds,
@@ -27,13 +30,26 @@ describe('VERSION', () => {
 });
 
 describe('resolveEncodeParams', () => {
-  it('clamps quality and scales outputs', () => {
+  it('maps quality to encoder knobs only', () => {
     const lowQ = resolveEncodeParams(1);
     const highQ = resolveEncodeParams(100);
-    assert.equal(lowQ.shortSide, 320);
-    assert.equal(highQ.shortSide, 1120);
     assert.ok(highQ.gifColors >= 128);
     assert.ok(lowQ.avifCrf > highQ.avifCrf);
+    assert.ok(lowQ.webpQ < highQ.webpQ);
+  });
+});
+
+describe('cropRegionPercentages', () => {
+  it('full frame when video aspect matches crop', () => {
+    const r = cropRegionPercentages(16 / 9, '16:9');
+    assert.ok(Math.abs(r.widthPct - 100) < 0.01);
+    assert.ok(Math.abs(r.leftPct) < 0.01);
+  });
+
+  it('letterboxes overlay for tall video vs wide crop', () => {
+    const r = cropRegionPercentages(9 / 16, '16:9');
+    assert.ok(r.heightPct < 100);
+    assert.ok(r.widthPct >= 99);
   });
 });
 
@@ -41,7 +57,15 @@ describe('buildCenterCropFilter', () => {
   it('includes crop and center offsets', () => {
     const f = buildCenterCropFilter('1:1');
     assert.ok(f.includes('crop='));
-    assert.ok(f.includes('(iw-w)/2'));
+    assert.ok(f.includes('x=(iw-ow)/2'));
+    assert.ok(f.includes('y=(ih-oh)/2'));
+  });
+
+  it('escapes commas in min() so -vf does not split the filter chain', () => {
+    const f = buildCenterCropFilter('16:9');
+    assert.ok(f.includes('\\,'), 'expected \\, so min(iw\\,ih*ar) is one filter argument');
+    assert.ok(f.includes('min(iw\\,'), 'min() comma must be escaped for vf graph parsing');
+    assert.ok(!f.includes('min(iw,'), 'bare comma in min(iw, ...) would break -vf parsing');
   });
 });
 
@@ -52,13 +76,29 @@ describe('buildVideoFilterChain', () => {
       trimStart: 0,
       trimEnd: 5,
       quality: 50,
+      maxDimensionPx: 1080,
       fps: 12,
       format: 'webp',
     };
     const r = resolveEncodeParams(plan.quality);
     const vf = buildVideoFilterChain(plan, r);
     assert.ok(vf.includes('fps=12'));
-    assert.ok(vf.includes('scale='));
+    assert.ok(vf.includes('force_original_aspect_ratio=decrease'));
+  });
+});
+
+describe('buildScaleToMaxDimension', () => {
+  it('uses min(iw, max) / min(ih, max) so max dimension never upscales', () => {
+    const s = buildScaleToMaxDimension(360);
+    assert.ok(s.includes('min(iw\\,360)'));
+    assert.ok(s.includes('min(ih\\,360)'));
+  });
+});
+
+describe('clampPlanFps', () => {
+  it('caps fps at 30', () => {
+    assert.equal(clampPlanFps(120), 30);
+    assert.equal(clampPlanFps(30.4), 30);
   });
 });
 
@@ -70,6 +110,7 @@ describe('trimDurationSeconds', () => {
         trimStart: 2,
         trimEnd: 8,
         quality: 50,
+        maxDimensionPx: 1080,
         fps: 12,
         format: 'gif',
       }),
@@ -85,6 +126,7 @@ describe('describeRecipe', () => {
       trimStart: 1,
       trimEnd: 4,
       quality: 80,
+      maxDimensionPx: 1080,
       fps: 12,
       format: 'webp',
     };
@@ -100,12 +142,13 @@ describe('describeRecipe', () => {
       trimStart: 0,
       trimEnd: 2,
       quality: 72,
+      maxDimensionPx: 1080,
       fps: 12,
       format: 'avif',
     };
     const line = describeRecipe(plan, 'clip.mp4', 'out.avif');
     assert.ok(line.includes('libaom-av1'));
-    assert.ok(line.includes('still-picture'));
+    assert.ok(line.includes('out.avif'));
   });
 });
 

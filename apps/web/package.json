@@ -4,9 +4,7 @@
   "private": true,
   "description": "Web interface for oddbits tools",
   "scripts": {
-    "predev": "node ./scripts/vendor-ffmpeg-core.mjs",
     "dev": "vite",
-    "prebuild": "node ./scripts/vendor-ffmpeg-core.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist"
