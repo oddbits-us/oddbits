@@ -198,14 +198,13 @@ export class GifBitsElement extends BitElement {
           hidden
         >
           <div class="window-titlebar">
-            <span id="gifbits-help-title">GifBits.md</span>
+            <span id="gifbits-help-title">GifBits Help</span>
             <div class="window-controls">
               <button type="button" class="window-btn gifbits-help-close bit-help-close" aria-label="Close help">X</button>
             </div>
           </div>
           <div class="window-content gifbits-help-content anime-section">
-            <h2 id="gifbits-help-heading">GifBits</h2>
-            <div class="docs-section">
+            <div class="bit-help-lede">
               <p>
                 <strong>Animated WebP</strong> is the default in the browser — fast and reliable in ffmpeg.wasm.
                 You can also export GIF or a PNG zip. GifBits runs
@@ -213,33 +212,25 @@ export class GifBitsElement extends BitElement {
                 in WebAssembly in this tab — your file never uploads.
               </p>
             </div>
-            <div class="docs-section">
-              <h3>In your code</h3>
-              <pre><code>npm install @oddbits/gifbits
+            <h3>In your code</h3>
+            <pre><code>npm install @oddbits/gifbits
 
 import { describeRecipe } from '@oddbits/gifbits';
 
 const plan = { cropRatio: '9:16', trimStart: 0, trimEnd: 6,
   quality: 75, maxDimensionPx: 1080, fps: 12, format: 'webp' as const };
 console.log(describeRecipe(plan, 'in.mp4', 'out.webp'));</code></pre>
-            </div>
-            <div class="docs-section">
-              <h3>From the CLI</h3>
-              <pre><code>npx @oddbits/gifbits recipe --ratio 9:16 --start 0 --end 4 --format webp --fps 12
+            <h3>From the CLI</h3>
+            <pre><code>npx @oddbits/gifbits recipe --ratio 9:16 --start 0 --end 4 --format webp --fps 12
 npx @oddbits/gifbits convert -i clip.mp4 -o out.webp --format webp --start 0 --end 5</code></pre>
-            </div>
-            <div class="docs-section">
-              <h3>Privacy</h3>
-              <p class="gifbits-help-privacy">
-                No accounts or telemetry — encoding stays on your device (wasm here or ffmpeg on your machine).
-              </p>
-            </div>
-            <div class="docs-section">
-              <p>
-                Full options and caveats on
-                <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/gifbits/README.md" target="_blank" rel="noopener noreferrer">GitHub</a>.
-              </p>
-            </div>
+            <h3>Privacy</h3>
+            <p class="gifbits-help-privacy">
+              No accounts or telemetry — encoding stays on your device (wasm here or ffmpeg on your machine).
+            </p>
+            <p>
+              Full options and caveats on
+              <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/gifbits/README.md" target="_blank" rel="noopener noreferrer">GitHub</a>.
+            </p>
           </div>
         </div>
 
