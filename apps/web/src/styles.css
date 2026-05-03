@@ -1200,6 +1200,55 @@ section h2,
   margin-top: var(--spacing-md);
 }
 
+.about-content {
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.about-content .about-byline {
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text);
+}
+
+.about-content .about-pledge {
+  margin: var(--spacing-xs) 0 var(--spacing-sm);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.about-content .about-credits {
+  list-style: none;
+  margin: 0 0 var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  border-top: var(--window-inner-rule);
+  border-bottom: var(--window-inner-rule);
+  font-size: 0.78rem;
+}
+
+.about-content .about-credits li {
+  margin: 2px 0;
+}
+
+.about-content .about-credits a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.about-content .about-credits a:hover {
+  color: var(--color-primary);
+}
+
+.about-content .about-creditslink {
+  margin: var(--spacing-xs) 0 0;
+}
+
+.heart {
+  color: var(--color-primary);
+  text-shadow: 0 0 4px var(--color-primary);
+}
+
 .tool-link {
   color: var(--color-accent);
   text-decoration: none;
@@ -1335,6 +1384,22 @@ odd-imagebits .imagebits-intro-error {
   max-height: min(50vh, 420px);
   overflow: auto;
   margin-bottom: 0;
+}
+
+.imagebits-help-dialog .imagebits-help-content .imagebits-help-privacy {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  padding: var(--spacing-sm);
+  border: var(--window-inner-rule);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.imagebits-help-dialog .imagebits-help-content .imagebits-help-privacy code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--color-success);
 }
 
 /* Also has .window-content: flex, overflow, padding from global; tighten padding for this panel */

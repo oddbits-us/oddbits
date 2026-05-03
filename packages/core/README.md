@@ -1,8 +1,10 @@
 # @oddbits/core
 
-Core plugin system and utilities for the oddbits ecosystem.
+Core types and a tiny in-memory plugin registry for the [Oddbits](https://github.com/oddbits-us/oddbits) ecosystem. Used by code-level callers (Node scripts, third-party hosts) that want to plug Oddbits "bits" into their own pipelines.
 
-## Installation
+> **Note:** the Oddbits desktop demo (`apps/web`) does **not** use this registry — it imports each bit's web component statically. `@oddbits/core` is for code-level integration, not desktop UI discovery.
+
+## Install
 
 ```bash
 npm install @oddbits/core
@@ -10,33 +12,64 @@ npm install @oddbits/core
 
 ## Usage
 
-### Plugin Registration
-
-```typescript
+```ts
 import { registerBit, getBit, listBits } from '@oddbits/core';
-import type { BitPlugin } from '@oddbits/core';
+import type { BitPlugin, BitInput, BitOutput } from '@oddbits/core';
 
 const myPlugin: BitPlugin = {
-  name: 'myplugin',
+  name: 'mybit',
   version: '0.1.0',
-  description: 'My custom plugin',
-  async process(input, options) {
-    // Process input
+  description: 'My custom bit',
+  async process(input: BitInput, options?: unknown): Promise<BitOutput> {
+    // process input → produce output
     return { data: result, metadata: {} };
-  }
+  },
 };
 
 registerBit(myPlugin);
-const plugin = getBit('myplugin');
+const plugin = getBit('mybit');
 const allPlugins = listBits();
 ```
 
-### Security posture
+## Types
 
-`@oddbits/core` focuses on plugin registration/runtime utilities.
-User-facing web tooling in this repository is local-only and does not request or store user API keys.
+```ts
+interface BitPlugin {
+  name: string;
+  version: string;
+  description: string;
+  process(input: BitInput, options?: unknown): Promise<BitOutput>;
+  hooks?: {
+    beforeProcess?: (input: BitInput) => Promise<BitInput>;
+    afterProcess?: (output: BitOutput) => Promise<BitOutput>;
+  };
+}
 
-## API Reference
+interface BitInput {
+  type: 'file' | 'url' | 'base64' | 'buffer';
+  data: File | string | ArrayBuffer;
+  metadata?: Record<string, unknown>;
+}
 
-See the TypeScript definitions for full API documentation.
+interface BitOutput {
+  data: Blob | ArrayBuffer | string;
+  metadata: Record<string, unknown>;
+  logs?: string[];
+}
+```
 
+## Authoring a bit
+
+For the full pattern (lib + CLI + optional desktop UI), see:
+
+- The repo-wide guide: [`apps/web/UI_THEME.md`](https://github.com/oddbits-us/oddbits/blob/main/apps/web/UI_THEME.md)
+- The bit architecture rule: [`.cursor/rules/bit-architecture.mdc`](https://github.com/oddbits-us/oddbits/blob/main/.cursor/rules/bit-architecture.mdc)
+- The canonical reference: [`@oddbits/imagebits`](https://github.com/oddbits-us/oddbits/tree/main/packages/imagebits)
+
+## Security posture
+
+`@oddbits/core` is plugin-system code only — no I/O, no network, no telemetry. Bits built on top of it inherit the project's privacy pledge: no server-side processing, no tracking, no API key collection, no data leaving the user's machine. See the project's [`SECURITY.md`](https://github.com/oddbits-us/oddbits/blob/main/SECURITY.md) and [`AGENTS.md`](https://github.com/oddbits-us/oddbits/blob/main/AGENTS.md).
+
+## License
+
+[MIT](LICENSE).

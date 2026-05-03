@@ -1,0 +1,139 @@
+---
+description: Architecture pattern for adding new "bits" to the Oddbits monorepo
+globs: apps/web/**, packages/**, index.html
+alwaysApply: false
+---
+
+# Oddbits "bit" architecture
+
+A **bit** is a self-contained tool. `packages/imagebits` + `apps/web/src/components/imagebits.ts` is the **canonical reference**.
+
+## Project pledges (non-negotiable)
+
+Bits inherit these constraints from the project:
+
+- MIT licensed, free, no ads, no rate limits.
+- **No server-side processing.** Bits run in the browser, in Node, or via the CLI on the user's machine.
+- **No tracking, no telemetry, no analytics, no data collection.**
+- **No accounts, no API keys, no BYOK surfaces.** If a bit needs a model, it runs locally (e.g. WASM/ONNX via transformers.js).
+- **Minimal dependencies.** Vanilla TypeScript; no UI frameworks for libraries or the desktop shell.
+- **Credit your sources.** Bundled fonts/assets and meaningful deps go in `CREDITS.md` in the same PR.
+
+If a request would violate any of these, surface it before proceeding. Full version in `AGENTS.md` at the repo root.
+
+## Bit shape variants — pick the smallest that fits
+
+Not every bit needs a desktop UI. The four supported shapes:
+
+| Shape | Surfaces | Use when |
+|---|---|---|
+| `lib-only` | `packages/{name}bits/` library + tests | Pure code helper, never user-facing |
+| `lib + cli` | adds `bin` entry + `cli.ts` + CLI tests | Tool that's most useful from a terminal (calculators, encoders, beautifiers) |
+| `lib + cli + minimal-web` | adds desktop icon + a minimal info window (description, version, `Source` + `Use in your project` buttons; **no** `<odd-…>`, **no** workshop) | CLI-first bit that just needs a desktop presence linking to its npx usage |
+| `lib + cli + full-web` | full four-surface desktop pattern (canonical: `imagebits`) | Bit that benefits from drag-in / tweak / get-output interaction |
+
+Naming: package names always end in `bits` and live under the `@oddbits/` npm scope (`@oddbits/imagebits`, `@oddbits/colorbits`, `@oddbits/clipbits`). Custom-element tag follows `<odd-{name}bits>`.
+
+## The four surfaces (full-web shape)
+
+The full pattern has these layers:
+
+1. **Desktop icon** — entry on the faux-desktop, `index.html` → `.desktop-icons`.
+2. **Desktop window** — small intro window with description + embedded `<odd-{name}bits>` web component + `.bit-actions` row (`Source` link + `How To` button).
+3. **Workshop dialog** — modal-style `.window`, `position: fixed`, `z-index: 400`, **portaled to `document.body`** for the actual work.
+4. **Alerts & inline help** — `.alert-modal-*` for confirms/notices; `.popover` + `.help-trigger` for inline help.
+
+For the `minimal-web` shape, only #1 and #2 apply — the desktop window has the description and links but no `<odd-…>` element and no workshop. No `BitElement` subclass is required.
+
+## Plugin registry vs desktop registry
+
+`@oddbits/core` exposes `BitPlugin` + `registerBit()`. That registry is for **code-level callers** — Node scripts, third-party hosts that want to plug bits into their own pipelines. The desktop UI does **not** discover bits through it; `apps/web/src/main.ts` imports each web component statically. You do **not** need to call `registerBit()` to make a desktop bit work.
+
+## Reuse the design system, never duplicate
+
+The "DESIGN SYSTEM" section at the top of `apps/web/src/styles.css` defines every universal control. Use these exact classes:
+
+- Buttons: `button` / `.btn-3d` (default), `.btn-secondary` (low-emphasis/destructive), `.window-btn` (24×24 chrome), `.win-link-btn` (anchor styled as button).
+- Inputs: `input`, `select`, `textarea`, `input[type="range"]` — already styled.
+- Help popovers: `.popover-anchor` + `.help-trigger` + `.popover`.
+- Combo buttons: `.combo-button-group` + `.combo-main-btn` + `.combo-caret-btn` + `.combo-dropdown` + `.combo-item`.
+- Alert/confirm dialogs: `.alert-modal-backdrop` + `.alert-modal` + `.alert-modal-icon/title/message/actions`.
+
+If you find yourself adding a `padding`, `background`, or `border` to a button/input/slider/dialog, **stop** — the design system already covers it. Add a layout-only override only if absolutely necessary, scoped to your component.
+
+## Web component pattern
+
+**Always extend `BitElement`** (`apps/web/src/bits/BitElement.ts`). It provides ALL of the generic infrastructure: workshop dialog open/close/drag/resize/portal, help dialog, alert/confirm modal, escape priority chain, raise-z on click, document-mousedown chain, dirty-close guard, and cleanup.
+
+In `apps/web/src/components/{name}bits.ts`:
+
+```ts
+import { BitElement } from '../bits/BitElement';
+
+export class NameBitsElement extends BitElement {
+  protected renderShell(): string { return `…shell + workshop + help + alert markup…`; }
+  protected initializeBitElements(): void { /* query bit-specific refs */ }
+  protected attachBitListeners(): void { /* wire bit-specific events */ }
+  protected isWorkshopDirty(): boolean { /* return true if there's unsaved work */ }
+  protected resetWorkshopState(): void { /* reset state when workshop closes */ }
+
+  // Optional overrides:
+  protected getHostWindowSelector() { return '#window-namebits'; }
+  protected getVersion() { return VERSION; } // from `@oddbits/{name}bits`
+  protected onAcceptConfirmClose() { /* set abort flags before closeWorkshop() */ }
+  protected handleEscapePopover() { /* return true to claim Escape */ return false; }
+  protected onDocumentMouseDownBit(e: MouseEvent) { /* dismiss bit popovers on outside click */ }
+  protected onDisconnect() { /* revoke object URLs */ }
+}
+
+customElements.define('odd-namebits', NameBitsElement);
+```
+
+Then `import './components/{name}bits';` in `src/main.ts`.
+
+Required CSS classes in your `renderShell()` HTML — `BitElement` discovers elements by these:
+
+- `.bit-shell` — root container the workshop returns to on close
+- `.bit-workshop` — workshop dialog (combine with `.window`)
+- `.bit-workshop-close` — workshop X button
+- `.bit-drag-handle` — workshop titlebar (drag region)
+- `.bit-help-dialog` — help dialog (optional; combine with `.window`)
+- `.bit-help-close` — help dialog X button (optional)
+- `.bit-confirm-backdrop` — alert/confirm modal backdrop (optional)
+- `.bit-confirm-cancel` / `.bit-confirm-accept` — confirm buttons (optional)
+
+Required CSS class on the host desktop window (in `index.html`):
+
+- `.bit-help-launch` — buttons that open the help dialog (optional)
+- `[data-bit-version]` — empty `<span>` inside the host titlebar that `BitElement` fills with `getVersion()` (optional, recommended)
+
+Behaviors `BitElement` gives you for free:
+
+- **Host styling inheritance** — auto-copies the host desktop window's `.pop-*` tint and `.window-title-icon` onto the workshop + help dialog. Drop the `.pop-*` class and a `<span class="window-title-icon">…</span>` on the `#window-{name}bits` element in `index.html` and the dialogs match without extra wiring.
+- **Live version in titlebar** — override `getVersion()` to return the underlying npm package's `VERSION` export (kept in sync by release-please via `extra-files`); `BitElement` writes it into any `[data-bit-version]` placeholder inside the host titlebar. Markup pattern: `…NameBits_v<span data-bit-version>0.0.0</span>.exe`.
+- **Portal modals to `document.body`** — fixed positioning escapes ancestor `transform`/stacking contexts.
+- **Escape priority**: alert → bit popover (`handleEscapePopover()`) → help → workshop. First open layer wins.
+- **Raise-z on click**: bumps a shared static `dialogZ` counter so newly clicked dialogs come forward.
+- **Dirty-close guard**: workshop X + Escape → `requestCloseWorkshop()` → confirm modal → accept calls `onAcceptConfirmClose()` (your abort flags) then `closeWorkshop()` → `resetWorkshopState()` (your bit cleanup).
+- **Cleanup on disconnect**: removes portaled elements + listeners; you only have to revoke `URL.createObjectURL` references in `onDisconnect()`.
+
+## Quick checklist
+
+- [ ] `packages/{name}bits/` headless lib (mirror `packages/imagebits`)
+- [ ] `packages/{name}bits/src/index.ts` exports `VERSION` with the `// x-release-please-version` marker
+- [ ] `release-please-config.json` lists the new package + `extra-files` entry for `src/index.ts`
+- [ ] `apps/web/src/components/{name}bits.ts` web component (override `getVersion()` to return `VERSION`)
+- [ ] Desktop icon in `index.html` with `data-target="window-{name}bits"`
+- [ ] Desktop window `id="window-{name}bits"` + intro + `<odd-{name}bits>` + `.bit-actions`, titlebar uses `<span data-bit-version>0.0.0</span>` placeholder
+- [ ] `import './components/{name}bits';` in `src/main.ts`
+- [ ] Reused design system classes (no duplicate styling)
+- [ ] Modals portaled to `document.body`
+- [ ] Dirty-close confirm if workshop has unsaved work
+- [ ] Cleanup in `disconnectedCallback`
+
+## Authoritative references
+
+- **Base class**: `apps/web/src/bits/BitElement.ts`
+- **Full pattern doc**: `apps/web/UI_THEME.md`
+- **Reference implementation**: `apps/web/src/components/imagebits.ts` + `packages/imagebits/`
+- **Design system CSS**: top section of `apps/web/src/styles.css`

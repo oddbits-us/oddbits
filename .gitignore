@@ -32,9 +32,15 @@ lerna-debug.log*
 # IDE
 .vscode/
 .idea/
-.cursor/
 *.sublime-project
 *.sublime-workspace
+
+# Cursor — keep shared rules + skills in source control, ignore the rest
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+!.cursor/skills/
+!.cursor/skills/**
 
 # Turbo
 .turbo/

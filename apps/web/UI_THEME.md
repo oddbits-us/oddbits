@@ -2,6 +2,23 @@
 
 This doc is the source of truth for **apps/web**: how the faux-desktop shell, windows, and tool UIs stay visually consistent when you add new “bits.”
 
+## Project pledges (read first)
+
+Bits inherit non-negotiable constraints from the project: MIT, no servers, no tracking, no API keys, vanilla TS only, credit your sources. Full version in `AGENTS.md` at the repo root and the `## Project pledges` section of `.cursor/rules/bit-architecture.mdc`. If your change would violate any of them, stop and flag it.
+
+## Bit shape variants — pick the smallest that fits
+
+Not every bit needs the full desktop workshop. Pick the shape that matches the tool:
+
+| Shape | Surfaces | Use when |
+|---|---|---|
+| `lib-only` | `packages/{name}bits/` library + tests | Pure code helper, never user-facing |
+| `lib + cli` | adds `bin` entry + `cli.ts` + CLI tests | Tool that's most useful from a terminal (calculators, encoders, beautifiers) |
+| `lib + cli + minimal-web` | adds desktop icon + a minimal info window (description, version, `Source` + `Use in your project` buttons; **no** `<odd-…>` element, **no** workshop) | CLI-first bit that just needs a desktop presence linking to its npx usage |
+| `lib + cli + full-web` | full four-surface pattern (canonical: `imagebits`) | Bit that benefits from drag-in / tweak / get-output interaction in the browser |
+
+The rest of this doc covers the **`full-web`** shape end-to-end. For the `minimal-web` shape, only the *Desktop icon → window wiring* and *Window markup* sections below apply — skip the workshop, help dialog, alert modal, and `BitElement` machinery.
+
 ## Aesthetic
 
 - **Retrowave desktop**: synthwave gradient sky, scanlines, perspective grid, chunky **pixel borders** (`--radius: 0`), **no rounded corners** on chrome.

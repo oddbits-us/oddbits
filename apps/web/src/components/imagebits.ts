@@ -193,6 +193,20 @@ const r = await processImage(input, { format: 'webp', maxDimension: 1080 });
             <pre><code>npx @oddbits/imagebits *.png -f webp -o ./out/
 npx @oddbits/imagebits ./photos -r --alt-text local --zip ./bundle.zip</code></pre>
 
+            <h3>Privacy</h3>
+            <p class="imagebits-help-privacy">
+              Your images stay in your browser. Resize, convert, and zip all
+              run on your machine &mdash; nothing is uploaded.
+              <br>
+              When you use <strong>Generate Alt Text</strong>, the model
+              weights (~150MB) are downloaded once from
+              <code>huggingface.co</code> and the
+              <a href="https://github.com/huggingface/transformers.js" target="_blank" rel="noopener noreferrer">transformers.js</a>
+              runtime from <code>cdn.jsdelivr.net</code>, then cached by
+              your browser. Captioning itself runs locally on your device;
+              your images are never sent to those services.
+            </p>
+
             <p>
               Full docs, options, and source on
               <a href="https://github.com/oddbits-us/oddbits/blob/main/packages/imagebits/README.md" target="_blank" rel="noopener noreferrer">GitHub</a>.

@@ -1,8 +1,18 @@
 # Contributing
 
+Thanks for thinking about contributing — bug reports, new bits, doc fixes, design suggestions, anything is welcome.
+
+## Read these first
+
+- [`AGENTS.md`](./AGENTS.md) — the project pledges that apply to every contribution (humans **and** AI agents). MIT, no servers, no tracking, no BYOK, vanilla TS only, credit your sources.
+- [`apps/web/UI_THEME.md`](./apps/web/UI_THEME.md) — required reading before you touch `apps/web/**`.
+- [`.cursor/rules/bit-architecture.mdc`](./.cursor/rules/bit-architecture.mdc) — the bit pattern in checklist form. Cursor auto-loads it.
+
+If you're using an AI coding agent, point it at `AGENTS.md` before you start the session — that's the single brief that keeps the agent inside the project's guarantees.
+
 ## License
 
-This project is released under the **MIT License** (see the [`LICENSE`](./LICENSE) file in the repository root).
+This project is released under the **MIT License** (see the [`LICENSE`](./LICENSE) file in the repository root). Bundled assets (fonts, etc.) carry their own licenses; see [`CREDITS.md`](./CREDITS.md).
 
 ## Commits and versioning
 
@@ -73,3 +83,17 @@ For an open-source repo with controlled quality/security, configure these in Git
 - ImageBits and website tooling are local-only for caption generation: no BYOK/API key collection.
 - Maintain strict CSP and header posture; treat any relaxation as a security change requiring review notes.
 - Do not introduce key persistence in browser storage for website features.
+
+## Code-level safety (applies everywhere, not just `apps/web/`)
+
+- Never commit secrets, API keys, or tokens.
+- Treat all user input as untrusted; never `innerHTML` untrusted strings.
+- Validate file type/size before heavy processing.
+- Keep third-party scripts minimal and reviewed.
+- Don't add analytics, telemetry, "anonymous usage stats", or crash reporters — first-party or third-party.
+- Don't add login, accounts, or any server endpoint that receives user data.
+- When adding any new outbound network call (e.g. fetching a model from a CDN), call it out in the PR description, update [`render.yaml`](./render.yaml)'s CSP, and add the origin to [`SECURITY.md`](./SECURITY.md) and the relevant bit's help dialog.
+
+## Crediting your sources
+
+Every PR that adds a new font, asset, or meaningful runtime dependency must update [`CREDITS.md`](./CREDITS.md) in the same PR. Bundled fonts/assets ship a license file alongside the asset (`{Name}.LICENSE.txt` next to the file).

@@ -1,5 +1,26 @@
 # Security Policy
 
+## Project pledge
+
+Oddbits is built on a simple promise to its users:
+
+- **No tracking, no analytics, no telemetry** — first-party or third-party.
+- **No accounts. No API keys. No persistent secret storage.**
+- **No server-side processing of user data.** Bits run in the browser, in
+  Node, or via the CLI on the user's machine. User files never leave the
+  user's machine.
+- **No data collection.** Period.
+
+The one nuance: if a bit uses an on-device ML model (today: ImageBits'
+optional alt-text), the model weights are downloaded once from public CDNs
+(currently Hugging Face + jsdelivr) and cached by the browser. **Inference
+runs locally; user images are never uploaded.** The CSP in `render.yaml`
+allow-lists those origins for fetches only.
+
+Any change that contradicts this pledge is a security-sensitive change and
+must be flagged in the PR. See [`AGENTS.md`](AGENTS.md) for the same rules
+in a form AI coding agents can read directly.
+
 ## Supported versions
 
 Security updates are currently provided for the latest published versions of:

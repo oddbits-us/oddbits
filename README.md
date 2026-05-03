@@ -1,235 +1,162 @@
 # Oddbits
 
-A collection of useful tools for web/app developers and designers. Each tool is a standalone "bit" that can be used in multiple ways: as an npm package, on a web page, or integrated into platforms like Webflow or Framer.
+> A growing collection of small, useful tools (**bits**) that run entirely in
+> your browser, on your terminal, or inside your own code. No servers, no
+> tracking, no accounts, no API keys. MIT licensed. Use it if you find it
+> useful.
 
-## Philosophy
+[Try it in the browser →](https://github.com/oddbits-us/oddbits)
+&nbsp;·&nbsp;
+[Read the bit pattern →](apps/web/UI_THEME.md)
+&nbsp;·&nbsp;
+[Built with →](CREDITS.md)
 
-- **Framework-light**: Vanilla TypeScript that compiles to clean JavaScript
-- **Small & Fast**: Minimal dependencies, optimized for performance
-- **Flexible**: Works in browsers, Node.js, and can be bundled into any app
-- **Easy to Understand**: Simple plugin architecture, no magic
-- **Extensible**: Anyone can create and share their own bits
+## What is a "bit"?
 
-## Installation
+A bit is a self-contained little tool. The pattern is always the same:
 
-```bash
-# Install dependencies
-pnpm install
+> Drag in (or paste in) your stuff → tweak some knobs in the workshop → get a
+> useful output.
 
-# Build all packages
-pnpm build
+Each bit can ship at any of four sizes — pick the smallest that fits the tool:
 
-# Run web app in development
-cd apps/web
-pnpm dev
-```
+| Shape | What you get |
+|---|---|
+| `lib-only` | An npm package with a clean API + tests. |
+| `lib + cli` | Plus a `bin` that you can `npx @oddbits/<bit>` against. |
+| `lib + cli + minimal-web` | Plus a small desktop window with description, source link, and a "use in your project" button. |
+| `lib + cli + full-web` | Plus a full **workshop** dialog with the actual interactive UI (the [`@oddbits/imagebits`](packages/imagebits) shape). |
+
+Naming convention: the npm package always ends in `bits`
+(`@oddbits/imagebits`, `@oddbits/colorbits`, `@oddbits/clipbits`, …) and the
+desktop custom element follows `<odd-{name}bits>`.
+
+## Privacy & security pledge
+
+These are **constraints, not preferences**. They are the reason the project
+exists.
+
+- **Your files never leave your machine.** All processing happens in the
+  browser, in Node, or via the CLI on your computer.
+- **No tracking. No analytics. No telemetry.** First-party or third-party.
+  Open the network tab and see for yourself.
+- **No accounts. No API keys. No "BYOK" surfaces.** If a bit needs a model,
+  it runs locally (e.g. WASM/ONNX via [transformers.js](https://github.com/huggingface/transformers.js)).
+- **No server-side processing.** Oddbits as a project never spins up a
+  backend that holds user content. The deployed website is a static site
+  with a strict CSP (see [`render.yaml`](render.yaml)).
+- **The one nuance.** If a bit uses an on-device ML model (today: ImageBits
+  optional alt-text), the **model weights** are downloaded once from
+  Hugging Face / jsdelivr and cached by your browser. **Inference is
+  local; your images never get uploaded.** The CSP only allows fetches —
+  not POSTs of your data — to those origins.
+
+If you find anything that contradicts this pledge, that's a bug. Please
+report it via [`SECURITY.md`](SECURITY.md).
 
 ## Packages
 
-### @oddbits/core
+| Package | What it does | Where it runs |
+|---|---|---|
+| [`@oddbits/core`](packages/core) | Plugin types + tiny in-memory registry, used by code-level callers. | Node + browser |
+| [`@oddbits/imagebits`](packages/imagebits) | Image resize / optimize / convert (`webp`, `avif`, `png`, `jpg`) and optional local alt-text. | Node (sharp) + browser (Canvas) + CLI |
 
-Core plugin system and utilities. Provides the foundation for all bits.
+The browser app at [`apps/web/`](apps/web) is the demo desktop that hosts
+each bit's interactive UI.
 
-```typescript
-import { registerBit, getBit, listBits } from '@oddbits/core';
-import type { BitPlugin } from '@oddbits/core';
-```
+## Quick starts
 
-### @oddbits/imagebits
-
-Image processing tools: resize, optimize, and convert formats (webp, avif, png, jpg).
-
-```typescript
-import { imageBits } from '@oddbits/imagebits';
-import type { ImageBitsOptions } from '@oddbits/imagebits';
-
-const output = await imageBits.process(
-  { type: 'file', data: file },
-  {
-    resize: { width: 800, height: 600, fit: 'contain' },
-    convert: { format: 'webp', quality: 0.9 }
-  }
-);
-```
-
-## Usage Examples
-
-### As an npm Package
+### As an npm package
 
 ```bash
 npm install @oddbits/imagebits
 ```
 
-```typescript
-import { imageBits } from '@oddbits/imagebits';
+```ts
+import { processImage } from '@oddbits/imagebits';
 
-const file = document.querySelector('input[type="file"]').files[0];
-const result = await imageBits.process(
-  { type: 'file', data: file },
-  { resize: { width: 800 }, convert: { format: 'webp' } }
-);
-
-// Download the processed image
-const url = URL.createObjectURL(result.data);
-const a = document.createElement('a');
-a.href = url;
-a.download = 'processed.webp';
-a.click();
+const result = await processImage(file, {
+  maxDimension: 1080,
+  format: 'webp',
+  quality: 0.9,
+});
+result.download('photo.webp'); // browser
 ```
 
-### On a Web Page (Web Component)
+The same import works in Node — bundlers see the `browser` field in
+`package.json` and pick the right build automatically.
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@oddbits/imagebits/browser.mjs"></script>
-</head>
-<body>
-  <odd-imagebits></odd-imagebits>
-</body>
-</html>
-```
-
-### In Node.js
-
-```typescript
-import { imageBits } from '@oddbits/imagebits';
-import fs from 'fs';
-
-const buffer = fs.readFileSync('input.jpg');
-const result = await imageBits.process(
-  { type: 'buffer', data: buffer },
-  { resize: { width: 800 }, convert: { format: 'webp' } }
-);
-
-fs.writeFileSync('output.webp', Buffer.from(await result.data.arrayBuffer()));
-```
-
-## Creating Your Own Bit
-
-1. Create a new package in `packages/your-bit-name/`
-
-2. Implement the `BitPlugin` interface:
-
-```typescript
-import type { BitPlugin, BitInput, BitOutput } from '@oddbits/core';
-
-export const myBit: BitPlugin = {
-  name: 'mybit',
-  version: '0.1.0',
-  description: 'Description of what my bit does',
-  
-  async process(input: BitInput, options?: unknown): Promise<BitOutput> {
-    // Your processing logic here
-    return {
-      data: processedData,
-      metadata: { /* metadata */ },
-      logs: ['Processing complete']
-    };
-  }
-};
-```
-
-3. Register it (optional, for auto-discovery):
-
-```typescript
-import { registerBit } from '@oddbits/core';
-registerBit(myBit);
-```
-
-4. Build and publish:
+### From the command line
 
 ```bash
-cd packages/your-bit-name
-pnpm build
-npm publish
+npx @oddbits/imagebits ./photos -r -f webp --alt-text local --zip ./photos.zip
 ```
 
-## Local-Only AI Features
+See [`packages/imagebits/README.md`](packages/imagebits/README.md) for the
+full CLI surface.
 
-For website tooling and ImageBits caption workflows, Oddbits uses local-only inference paths.
-No user API keys are collected, requested, stored, or relayed by the project for these flows.
+## Authoring a new bit
 
-## Architecture
+1. Read the project pledges in [`AGENTS.md`](AGENTS.md) (applies to humans
+   and AI agents both).
+2. Read [`apps/web/UI_THEME.md`](apps/web/UI_THEME.md) for the desktop shell
+   pattern, then [`.cursor/rules/bit-architecture.mdc`](.cursor/rules/bit-architecture.mdc)
+   for the checklist version.
+3. Mirror [`packages/imagebits`](packages/imagebits) for the lib + CLI
+   shape, and [`apps/web/src/components/imagebits.ts`](apps/web/src/components/imagebits.ts)
+   for the desktop UI shape (web bits extend `BitElement`).
+4. Add your package to [`release-please-config.json`](release-please-config.json)
+   with an `extra-files` entry for its `VERSION` constant if you have one.
+5. Open a PR. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for commit/release
+   conventions.
 
-### Plugin System
-
-Each bit implements a simple interface:
-
-```typescript
-interface BitPlugin {
-  name: string;
-  version: string;
-  description: string;
-  process(input: BitInput, options?: unknown): Promise<BitOutput>;
-  hooks?: {
-    beforeProcess?: (input: BitInput) => Promise<BitInput>;
-    afterProcess?: (output: BitOutput) => Promise<BitOutput>;
-  };
-}
-```
-
-### Input/Output
-
-```typescript
-interface BitInput {
-  type: 'file' | 'url' | 'base64' | 'buffer';
-  data: File | string | ArrayBuffer;
-  metadata?: Record<string, unknown>;
-}
-
-interface BitOutput {
-  data: Blob | ArrayBuffer | string;
-  metadata: Record<string, unknown>;
-  logs?: string[];
-}
-```
+If you're working with an AI agent (Cursor, Claude, Copilot, GPT, …) point
+it at [`AGENTS.md`](AGENTS.md) first; that's the single brief that keeps
+new sessions aligned with the project pledges.
 
 ## Development
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run in development mode (watch)
-pnpm dev
-
-# Run web app
-cd apps/web
-pnpm dev
+pnpm install        # install everything
+pnpm build          # build all packages
+pnpm dev            # run package watchers + the web app
+pnpm --filter @oddbits/imagebits test    # run a package's tests
 ```
-
-## Project Structure
 
 ```
 oddbits/
-├── packages/
-│   ├── core/              # Core plugin system
-│   └── imagebits/         # Image processing tool
 ├── apps/
-│   └── web/               # Web interface demo
-├── turbo.json             # Turborepo config
-├── pnpm-workspace.yaml    # pnpm workspace config
-└── package.json           # Root package.json
+│   └── web/                  # Desktop demo (Vite, vanilla TS + custom elements)
+├── packages/
+│   ├── core/                 # @oddbits/core — plugin registry + types
+│   └── imagebits/            # @oddbits/imagebits — image lib + CLI
+├── .cursor/rules/            # Cursor / AI rules (shared with the repo)
+├── AGENTS.md                 # AI agent brief
+├── CREDITS.md                # Thank-yous and bundled-asset attributions
+└── render.yaml               # Static-site config + CSP for the website
 ```
+
+## Built with
+
+Big thanks to the people whose work this stands on. Highlights:
+
+- **[Cursor](https://cursor.com/)** — most of this code was pair-written
+  with the Cursor IDE/agent.
+- **[SerenityOS](https://serenityos.org/)** — the pixel-art emoji font
+  that gives the desktop its personality (BSD-2-Clause).
+- **[`@huggingface/transformers`](https://github.com/huggingface/transformers.js)**,
+  **[sharp](https://sharp.pixelplumbing.com/)**,
+  **[fflate](https://github.com/101arrowz/fflate)**,
+  **[anime.js](https://animejs.com/)**.
+
+The full list lives in [`CREDITS.md`](CREDITS.md). If we're using your work
+and forgot the credit, open an issue or a PR.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+[MIT](LICENSE). See [`CREDITS.md`](CREDITS.md) for bundled-asset licenses.
 
 ## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-### Ways to Contribute
-
-- Report bugs
-- Suggest new bits or features
-- Submit pull requests
-- Improve documentation
-- Share feedback and ideas
-
+Contributions are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md)
+and the project pledges in [`AGENTS.md`](AGENTS.md) before opening a PR.

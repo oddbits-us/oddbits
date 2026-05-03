@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oddbits - Developer Tools</title>
+  <meta name="description" content="Oddbits — an open-source collection of useful little tools (bits) that run entirely in your browser. MIT licensed, no tracking, no servers.">
+  <meta name="theme-color" content="#1a0033">
+  <link rel="icon" type="image/png" href="/oddbits-icon.png">
+  <link rel="apple-touch-icon" href="/oddbits-icon.png">
+  <title>Oddbits — open-source browser tools</title>
   <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
@@ -167,7 +171,7 @@
     </div>
 
     <!-- Footer Window -->
-    <div id="window-about" class="window draggable" style="bottom: 5%; right: 5%; width: 300px; z-index: 25;">
+    <div id="window-about" class="window draggable" style="bottom: 5%; right: 5%; width: 320px; z-index: 25;">
       <div class="window-titlebar">
         <span class="window-title-text"><span class="window-title-icon">ℹ️</span>About</span>
         <div class="window-controls">
@@ -175,8 +179,15 @@
           <button class="window-btn">X</button>
         </div>
       </div>
-      <div class="window-content" style="text-align: center;">
-        <p>Made with <span class="heart">❤</span> by <a href="https://github.com/dainbrain" target="_blank" rel="noopener noreferrer" class="win-link-btn win-link-btn-inline btn-secondary">@dainbrain</a></p>
+      <div class="window-content about-content">
+        <p class="about-byline">Made with <span class="heart">❤</span> by <a href="https://github.com/dainbrain" target="_blank" rel="noopener noreferrer" class="win-link-btn win-link-btn-inline btn-secondary">@dainbrain</a></p>
+        <p class="about-pledge">Free and open source. MIT licensed. No tracking, no servers, your files never leave your browser.</p>
+        <ul class="about-credits">
+          <li>Pair-built with <a href="https://cursor.com/" target="_blank" rel="noopener noreferrer">Cursor</a></li>
+          <li>Emoji font by <a href="https://serenityos.org/" target="_blank" rel="noopener noreferrer">SerenityOS</a> (BSD-2)</li>
+          <li>Image pipeline: <a href="https://sharp.pixelplumbing.com/" target="_blank" rel="noopener noreferrer">sharp</a> &amp; <a href="https://github.com/huggingface/transformers.js" target="_blank" rel="noopener noreferrer">transformers.js</a></li>
+        </ul>
+        <p class="about-creditslink"><a href="https://github.com/oddbits-us/oddbits/blob/main/CREDITS.md" target="_blank" rel="noopener noreferrer" class="win-link-btn win-link-btn-inline btn-secondary">Full credits</a></p>
       </div>
     </div>
   </div>
