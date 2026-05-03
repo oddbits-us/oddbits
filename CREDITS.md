@@ -28,6 +28,10 @@ freely. Big thanks to all of them.
     font unmodified and refer to it by its original name.
   - Used for the large hero title inside the main Oddbits desktop window.
 
+- **Desktop wallpaper** — `oddbits-background-midjourney.webp` in `apps/web/public/`
+  - Generated image (Midjourney); used as the full-viewport CSS background on the
+    desktop shell (`background-size: cover`).
+
 ## Runtime dependencies (key ones)
 
 These ship with the published packages or the deployed website:

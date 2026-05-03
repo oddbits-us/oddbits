@@ -1,5 +1,5 @@
 /**
- * Desktop shell: parallax, anime.js entrances, draggable .window stacking, .desktop-icon → #window-*.
+ * Desktop shell: anime.js entrances, draggable .window stacking, .desktop-icon → #window-*.
  * HTML/CSS conventions for new tools (icons, windows, modals): apps/web/UI_THEME.md
  */
 import './styles.css'
@@ -30,24 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fill any [data-oddbits-version] slots (e.g. the <sup> in the hero h1).
   document.querySelectorAll<HTMLElement>('[data-oddbits-version]').forEach((el) => {
     el.textContent = `v${__ODDBITS_VERSION__}`;
-  });
-
-  // Parallax scroll effect
-  const bgDistant = document.querySelector('.bg-layer.distant') as HTMLElement;
-  const bgGrid = document.querySelector('.bg-layer.grid') as HTMLElement;
-  
-  window.addEventListener('scroll', () => {
-    const scrollY = window.scrollY;
-    
-    if (bgDistant) {
-      bgDistant.style.transform = `translateY(${scrollY * 0.2}px)`;
-    }
-    
-    if (bgGrid) {
-      // Perspective is 500px, rotateX 60deg, scale 2 in CSS
-      bgGrid.style.transform = `perspective(500px) rotateX(60deg) scale(2) translateY(${scrollY * 0.5}px)`;
-      bgGrid.style.backgroundPosition = `center ${scrollY * 1.5}px`;
-    }
   });
 
   // Entrance animations
