@@ -1006,7 +1006,10 @@ input[type="range"]::-moz-range-thumb {
   text-shadow: none;
 }
 
-.window-content > p {
+/* Hero Oddbits.exe tagline only — direct child <p> under this shell (see index.html).
+   Other windows use nested sections (.docs-section, .bit-intro) or should not rely on this rule.
+   Bit help dialogs reset body copy via `.bit-help-dialog .window-content` below. */
+.window--hero .window-content > p {
   color: var(--color-text-secondary);
   font-size: 1.05rem;
   font-weight: bold;
@@ -1110,6 +1113,22 @@ section h2,
   border: 1px solid rgba(0, 0, 0, 0.4);
 }
 
+/* Inline prose links in Readme / docs blocks (not 3D `.win-link-btn` CTAs) */
+.docs-section a:not(.win-link-btn):not(.win-link-btn-inline) {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.docs-section a:not(.win-link-btn):not(.win-link-btn-inline):hover {
+  color: var(--color-primary);
+}
+
+.docs-section a:not(.win-link-btn):not(.win-link-btn-inline):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 /* Tools List — flat rows, chunky inner dividers between multiple items */
 .tools-list {
   list-style: none;
@@ -1210,6 +1229,21 @@ section h2,
   color: var(--color-text);
 }
 
+.about-content .about-byline a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.about-content .about-byline a:hover {
+  color: var(--color-primary);
+}
+
+.about-content .about-byline a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .about-content .about-pledge {
   margin: var(--spacing-xs) 0 var(--spacing-sm);
   font-size: 0.8rem;
@@ -1217,16 +1251,10 @@ section h2,
 }
 
 .about-content .about-credits {
-  list-style: none;
-  margin: 0 0 var(--spacing-sm);
-  padding: var(--spacing-sm) 0;
+  margin: 0;
+  padding: var(--spacing-sm) 0 0;
   border-top: var(--window-inner-rule);
-  border-bottom: var(--window-inner-rule);
   font-size: 0.78rem;
-}
-
-.about-content .about-credits li {
-  margin: 2px 0;
 }
 
 .about-content .about-credits a {
@@ -1236,10 +1264,6 @@ section h2,
 
 .about-content .about-credits a:hover {
   color: var(--color-primary);
-}
-
-.about-content .about-creditslink {
-  margin: var(--spacing-xs) 0 0;
 }
 
 .heart {
@@ -1361,20 +1385,42 @@ odd-imagebits .imagebits-intro-error {
   display: none;
 }
 
-.imagebits-help-dialog .imagebits-help-content {
-  display: grid;
-  gap: var(--spacing-sm);
-}
-
-.imagebits-help-dialog .imagebits-help-content h3 {
+/* BitElement help dialog — prose matches `.docs-section` / tool windows, not hero tagline or raw browser defaults */
+.bit-help-dialog .window-content h3 {
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  font-weight: bold;
+  color: var(--color-text);
   margin: 0;
-  color: var(--color-accent);
 }
 
-.imagebits-help-dialog .imagebits-help-content p {
+.bit-help-dialog .window-content p {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: 0.85rem;
+  line-height: 1.45;
+  font-weight: normal;
+}
+
+.bit-help-dialog .window-content a:not(.win-link-btn):not(.win-link-btn-inline) {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.bit-help-dialog .window-content a:not(.win-link-btn):not(.win-link-btn-inline):hover {
+  color: var(--color-primary);
+}
+
+.bit-help-dialog .window-content a:not(.win-link-btn):not(.win-link-btn-inline):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.imagebits-help-dialog .imagebits-help-content {
+  display: grid;
+  gap: var(--spacing-sm);
 }
 
 .imagebits-help-dialog .imagebits-help-content pre {

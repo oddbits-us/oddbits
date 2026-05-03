@@ -132,12 +132,13 @@ Keep this structure visually consistent across bits so users can instantly orien
 | Tool list row | `.tools-list` → `.tool-item` + `.tool-icon` + `.tool-info` | Flat rows; `--window-inner-rule` between items |
 | Code / install docs | `.docs-section` | Stacked sections separated by rules; `<pre><code>` with light border only |
 | Wide tool embed | `.tools-grid` | Grid wrapper for web components; optional rule above when following `.tools-list` |
+| Bit help dialog | `.bit-help-dialog` + `.window` + `.window-content` (see `BitElement`) | Same typography as docs/tool windows: **`h3`** = `--color-text` (not link cyan), body **`p`** = `--color-text-secondary` / normal weight, inline **`a`** = accent → pink hover (styled in `styles.css`; no raw browser blue) |
 
-Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** / tool titles ≈1.05rem, body/secondary text ≈0.85–0.95rem, hero **`h1`** (Press Start 2P) ≈1.75rem. **`h1`** is for the main Oddbits hero only.
+Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** / tool titles ≈1.05rem, body/secondary text ≈0.85–0.95rem, hero **`h1`** (Press Start 2P) ≈1.75rem. **`h1`** is for the main Oddbits hero only. The Oddbits hero tagline uses **`.window--hero .window-content > p`** (bold, slightly larger) — that rule is scoped to the hero window only; do not rely on a bare `.window-content > p` selector for generic window copy.
 
 ## Links & buttons
 
-- **Links**: `.tool-link` (cyan → pink hover) or inline anchors with `color: var(--color-accent)` for consistency.
+- **Links**: `.tool-link` (cyan → pink hover, uppercase, for tool-list CTAs) or **inline prose links** in window body copy with `color: var(--color-accent)`, no underline, `color: var(--color-primary)` on hover (same idea as `.about-content .about-credits a`). Bit **help dialogs** (`.bit-help-dialog .window-content`) apply this automatically to `<a>` that are not `.win-link-btn` / `.win-link-btn-inline`.
 - **Primary actions** inside custom panels: match `.window-btn` / workshop buttons — light gray face, 2px highlight/shadow borders, pressed state inverts bevel (see `.imagebits-workshop-portal button`).
 - **Secondary buttons**: add `.btn-secondary` to any `button` or `.win-link-btn` for a darker grey face — use it for less-emphasized actions (Source links, destructive confirm buttons, dropdown-revealed alternates).
 
