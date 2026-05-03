@@ -11,6 +11,16 @@ import {
   extractRotation,
   setDesktopAnchorFromViewportPx,
 } from './desktopWindowAnchor'
+import {
+  applyLastKnownAnchorsOnly,
+  applyWindowState,
+  captureDesktopLayout,
+  clearDesktopLayout,
+  loadDesktopLayout,
+  saveDesktopLayout,
+  savedStateHasAnchors,
+  type SavedDesktopLayout,
+} from './desktopLayoutStorage'
 import { attachTransformWindowResize } from './windowResize'
 
 // Vite injects this from the root package.json at build time; see vite.config.ts.
@@ -87,6 +97,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setOffset: (x: number, y: number) => void;
   };
   const windowControllers: WindowController[] = [];
+
+  let saveLayoutTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleSaveDesktopLayout() {
+    if (saveLayoutTimer) clearTimeout(saveLayoutTimer);
+    saveLayoutTimer = setTimeout(() => {
+      saveLayoutTimer = null;
+      saveDesktopLayout(captureDesktopLayout());
+    }, 350);
+  }
+
+  const savedLayout: SavedDesktopLayout | null = loadDesktopLayout();
+  const useSavedLayout =
+    savedLayout != null &&
+    Object.values(savedLayout.windows).some((st) => savedStateHasAnchors(st));
 
   function positionWindowNearIcon(windowEl: HTMLElement) {
     const icon = document.querySelector(`.desktop-icon[data-target="${windowEl.id}"]`) as HTMLElement | null;
@@ -257,6 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
         complete: () => {
           bakeTranslateIntoPercentAnchor(controller.el);
           controller.setOffset(0, 0);
+          scheduleSaveDesktopLayout();
         },
       });
     });
@@ -290,7 +315,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (!titlebar) return;
 
-    positionWindowNearIcon(windowEl);
+    const savedWin = savedLayout?.windows[windowEl.id];
+    if (useSavedLayout && savedWin && savedStateHasAnchors(savedWin)) {
+      applyWindowState(windowEl, savedWin);
+    } else {
+      positionWindowNearIcon(windowEl);
+    }
 
     let isDragging = false;
     let currentX = 0;
@@ -322,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         xOffset = clamped2.x;
         yOffset = clamped2.y;
         applyDragTransform(xOffset, yOffset);
+        scheduleSaveDesktopLayout();
       },
     });
 
@@ -340,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     windowEl.addEventListener('mousedown', () => {
       highestZIndex++;
       windowEl.style.zIndex = highestZIndex.toString();
+      scheduleSaveDesktopLayout();
     });
 
     titlebar.addEventListener('mousedown', dragStart);
@@ -380,6 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
       xOffset = 0;
       yOffset = 0;
       isDragging = false;
+      scheduleSaveDesktopLayout();
     }
 
     window.addEventListener('resize', () => {
@@ -388,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
       xOffset = clamped.x;
       yOffset = clamped.y;
       applyDragTransform(xOffset, yOffset);
+      scheduleSaveDesktopLayout();
     });
 
     // Close button functionality
@@ -395,24 +429,77 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
         windowEl.style.display = 'none';
+        saveDesktopLayout(captureDesktopLayout());
       });
     }
   });
 
-  spreadWindowsOnLoad(windowControllers);
+  if (useSavedLayout && savedLayout) {
+    let mz = 100;
+    for (const st of Object.values(savedLayout.windows)) {
+      const z = parseInt(st.zIndex, 10);
+      if (!Number.isNaN(z)) mz = Math.max(mz, z);
+    }
+    highestZIndex = mz;
+    windowControllers.forEach((ctrl) => {
+      bakeTranslateIntoPercentAnchor(ctrl.el);
+      const c = clampWindowTranslate(ctrl.el, 0, 0);
+      ctrl.setOffset(c.x, c.y);
+    });
+    scheduleSaveDesktopLayout();
+  } else {
+    spreadWindowsOnLoad(windowControllers);
+  }
+
+  const autoLayoutBtn = document.querySelector('.desktop-autolayout-btn');
+  if (autoLayoutBtn) {
+    autoLayoutBtn.addEventListener('click', () => {
+      clearDesktopLayout();
+      if (saveLayoutTimer) {
+        clearTimeout(saveLayoutTimer);
+        saveLayoutTimer = null;
+      }
+      windowControllers.forEach((ctrl) => {
+        ctrl.el.style.display = 'flex';
+        positionWindowNearIcon(ctrl.el);
+        bakeTranslateIntoPercentAnchor(ctrl.el);
+        const c = clampWindowTranslate(ctrl.el, 0, 0);
+        ctrl.setOffset(c.x, c.y);
+      });
+      spreadWindowsOnLoad(windowControllers);
+    });
+  }
+
+  window.addEventListener('beforeunload', () => {
+    saveDesktopLayout(captureDesktopLayout());
+  });
 
   // Desktop Icons functionality
   desktopIcons.forEach(icon => {
     icon.addEventListener('click', () => {
       const targetId = icon.getAttribute('data-target');
-      if (targetId) {
-        const targetWindow = document.getElementById(targetId);
-        if (targetWindow) {
-          targetWindow.style.display = 'flex';
-          highestZIndex++;
-          targetWindow.style.zIndex = highestZIndex.toString();
-        }
+      if (!targetId) return;
+      const targetWindow = document.getElementById(targetId);
+      if (!targetWindow || !(targetWindow instanceof HTMLElement)) return;
+
+      const latest = loadDesktopLayout();
+      const st = latest?.windows[targetId];
+      if (st) {
+        applyLastKnownAnchorsOnly(targetWindow, st);
       }
+
+      targetWindow.style.display = 'flex';
+      highestZIndex++;
+      targetWindow.style.zIndex = highestZIndex.toString();
+
+      const ctrl = windowControllers.find((c) => c.el.id === targetId);
+      if (ctrl) {
+        bakeTranslateIntoPercentAnchor(ctrl.el);
+        const c = clampWindowTranslate(ctrl.el, 0, 0);
+        ctrl.setOffset(c.x, c.y);
+      }
+
+      scheduleSaveDesktopLayout();
     });
   });
 });

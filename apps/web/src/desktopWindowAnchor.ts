@@ -29,6 +29,9 @@ function round2(n: number): number {
  * `offsetLeft`/`offsetTop` by the viewport delta, then converting to %.
  */
 export function bakeTranslateIntoPercentAnchor(win: HTMLElement): void {
+  // Hidden windows report a zero rect; baking would clobber saved % anchors with 0%/0%.
+  if (getComputedStyle(win).display === 'none') return;
+
   const desktop = getDesktopEl();
   const d = desktop.getBoundingClientRect();
   const rotation = extractRotation(win.style.transform);
