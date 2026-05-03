@@ -1,0 +1,5 @@
+# Update sitemap URL if the site moves to a custom domain.
+User-agent: *
+Allow: /
+
+Sitemap: https://oddbits.onrender.com/sitemap.xml
