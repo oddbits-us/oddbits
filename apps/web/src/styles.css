@@ -802,6 +802,11 @@ input[type="range"]::-moz-range-thumb {
   max-width: var(--window-default-max-width);
 }
 
+/* About: stay narrower than other tool windows; needed so clearing inline width (e.g. Auto layout) does not use fill-available to full #desktop width */
+#window-about.window-size-default {
+  max-width: 320px;
+}
+
 /* Hero intro: slightly narrower + more breathing room inside */
 .window--hero {
   max-width: var(--window-hero-max-width);

@@ -21,7 +21,7 @@ import {
   savedStateHasAnchors,
   type SavedDesktopLayout,
 } from './desktopLayoutStorage'
-import { attachTransformWindowResize } from './windowResize'
+import { attachTransformWindowResize, measureDesktopWindowNaturalHeight } from './windowResize'
 
 // Vite injects this from the root package.json at build time; see vite.config.ts.
 declare const __ODDBITS_VERSION__: string;
@@ -123,8 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         Math.round(anchoredRect.top),
         windowEl
       );
-      if (!windowEl.style.width) windowEl.style.width = `${Math.round(anchoredRect.width)}px`;
-      if (!windowEl.style.height) windowEl.style.height = `${Math.round(anchoredRect.height)}px`;
+      /** Width/height must be measured after bottom/right are cleared — otherwise `width: auto` spans the row between anchors and the rect is falsely huge. */
+      void windowEl.offsetHeight;
+      const afterAnchor = windowEl.getBoundingClientRect();
+      if (!windowEl.style.width) windowEl.style.width = `${Math.round(afterAnchor.width)}px`;
+      if (!windowEl.style.height) windowEl.style.height = `${Math.round(afterAnchor.height)}px`;
     }
 
     const iconRect = icon.getBoundingClientRect();
@@ -496,6 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
         yOffset = y;
         applyDragTransform(xOffset, yOffset);
       },
+      getMinHeight: () => measureDesktopWindowNaturalHeight(windowEl),
       afterResize: () => {
         const clamped = clampWindowTranslate(windowEl, xOffset, yOffset);
         xOffset = clamped.x;
@@ -615,6 +619,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       windowControllers.forEach((ctrl) => {
         ctrl.el.style.display = 'flex';
+        ctrl.el.style.width = '';
+        ctrl.el.style.height = '';
+        ctrl.el.style.maxWidth = '';
         positionWindowNearIcon(ctrl.el);
         bakeTranslateIntoPercentAnchor(ctrl.el);
         const c = clampWindowTranslate(ctrl.el, 0, 0);

@@ -37,7 +37,28 @@ export type TransformResizeCtx = {
   afterResize?: () => void;
   minWidth?: number;
   minHeight?: number;
+  /**
+   * Dynamic floor for height (e.g. fit current inner content at the current width).
+   * Called during drag so wrapping changes update the minimum.
+   */
+  getMinHeight?: () => number;
 };
+
+/**
+ * Height the window would take with no fixed height (CSS + current width).
+ * Desktop shell only — not used for fixed workshops/help dialogs.
+ */
+export function measureDesktopWindowNaturalHeight(win: HTMLElement): number {
+  const prevHeight = win.style.height;
+  const prevMaxHeight = win.style.maxHeight;
+  win.style.height = 'auto';
+  win.style.maxHeight = 'none';
+  void win.offsetHeight;
+  const h = Math.ceil(Math.max(win.getBoundingClientRect().height, win.scrollHeight));
+  win.style.height = prevHeight;
+  win.style.maxHeight = prevMaxHeight;
+  return Math.max(h, MIN_H_DEFAULT);
+}
 
 /**
  * Desktop windows: position uses transform translate + optional rotate from inline styles.
@@ -47,7 +68,7 @@ export function attachTransformWindowResize(win: HTMLElement, ctx: TransformResi
   ensureHandles(win);
 
   const minW = ctx.minWidth ?? MIN_W_DEFAULT;
-  const minH = ctx.minHeight ?? MIN_H_DEFAULT;
+  const baseMinH = ctx.minHeight ?? MIN_H_DEFAULT;
 
   const normalizeAnchoredPosition = () => {
     if (!win.style.bottom && !win.style.right) return;
@@ -84,6 +105,9 @@ export function attachTransformWindowResize(win: HTMLElement, ctx: TransformResi
     const maxW = window.innerWidth - 16;
     const maxH = window.innerHeight - 16;
 
+    const involvesH = dir.includes('e') || dir.includes('w');
+    const involvesV = dir.includes('n') || dir.includes('s');
+
     const applyWest = () => {
       const nw = clamp(active!.startW - dx, minW, maxW);
       tx = active!.startTx + (active!.startW - nw);
@@ -92,6 +116,25 @@ export function attachTransformWindowResize(win: HTMLElement, ctx: TransformResi
     const applyEast = () => {
       w = clamp(active!.startW + dx, minW, maxW);
     };
+
+    if (dir === 'w') applyWest();
+    else if (dir === 'e') applyEast();
+    else if (dir === 'nw') applyWest();
+    else if (dir === 'ne') applyEast();
+    else if (dir === 'sw') applyWest();
+    else if (dir === 'se') applyEast();
+
+    if (involvesH) {
+      win.style.width = `${Math.round(w)}px`;
+      win.style.maxWidth = 'none';
+    }
+
+    let minH = baseMinH;
+    if (involvesV) {
+      const contentFloor = ctx.getMinHeight?.() ?? 0;
+      minH = Math.max(baseMinH, contentFloor);
+    }
+
     const applyNorth = () => {
       const nh = clamp(active!.startH - dy, minH, maxH);
       ty = active!.startTy + (active!.startH - nh);
@@ -101,31 +144,13 @@ export function attachTransformWindowResize(win: HTMLElement, ctx: TransformResi
       h = clamp(active!.startH + dy, minH, maxH);
     };
 
-    if (dir === 'w') applyWest();
-    else if (dir === 'e') applyEast();
-    else if (dir === 'n') applyNorth();
+    if (dir === 'n') applyNorth();
     else if (dir === 's') applySouth();
-    else if (dir === 'nw') {
-      applyWest();
-      applyNorth();
-    } else if (dir === 'ne') {
-      applyEast();
-      applyNorth();
-    } else if (dir === 'sw') {
-      applyWest();
-      applySouth();
-    } else if (dir === 'se') {
-      applyEast();
-      applySouth();
-    }
+    else if (dir === 'nw') applyNorth();
+    else if (dir === 'ne') applyNorth();
+    else if (dir === 'sw') applySouth();
+    else if (dir === 'se') applySouth();
 
-    const involvesH = dir.includes('e') || dir.includes('w');
-    const involvesV = dir.includes('n') || dir.includes('s');
-
-    if (involvesH) {
-      win.style.width = `${Math.round(w)}px`;
-      win.style.maxWidth = 'none';
-    }
     if (involvesV) {
       win.style.height = `${Math.round(h)}px`;
     }
