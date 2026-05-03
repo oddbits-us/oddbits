@@ -1,6 +1,6 @@
 @font-face {
-  font-family: 'SuperPixel';
-  src: url('/fonts/SuperPixel.ttf') format('truetype');
+  font-family: 'Press Start 2P';
+  src: url('/fonts/PressStart2P-Regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -983,9 +983,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .window-content h1 {
-  font-family: 'SuperPixel', monospace;
-  font-size: 2.25rem;
-  line-height: 1.15;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.75rem;
+  line-height: 1.25;
   margin-bottom: var(--spacing-md);
   color: var(--color-primary);
   text-shadow: var(--text-glow), 3px 3px 0px rgba(0, 0, 0, 0.8);

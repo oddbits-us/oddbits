@@ -22,7 +22,7 @@ The rest of this doc covers the **`full-web`** shape end-to-end. For the `minima
 ## Aesthetic
 
 - **Retrowave desktop**: synthwave gradient sky, scanlines, perspective grid, chunky **pixel borders** (`--radius: 0`), **no rounded corners** on chrome.
-- **Old-school window chrome**: navy title bar (`--color-window-title`), light gray 3D buttons (`.window-btn`), Arial/Tahoma for UI chrome; **SuperPixel** only for large hero titles inside `.window-content`.
+- **Old-school window chrome**: navy title bar (`--color-window-title`), light gray 3D buttons (`.window-btn`), Arial/Tahoma for UI chrome; **Press Start 2P** only for large hero titles inside `.window-content`.
 - **Inside windows**: do **not** repeat the thick black frame + `--shadow` on inner panels. Use **spacing**, **`--window-inner-rule`** (4px black dividers), and light hovers. Only top-level `.window` nodes (and separate modal `.window` dialogs, e.g. ImageBits workshop) get the full OS window treatment.
 - **Emoji**: prefer **SerenityOS-Emoji** for icons and decorative glyphs so they match the pixel OS vibe (`font-family` on `.desktop-icon-img`, `.tool-icon`, etc.).
 
@@ -133,7 +133,7 @@ Keep this structure visually consistent across bits so users can instantly orien
 | Code / install docs | `.docs-section` | Stacked sections separated by rules; `<pre><code>` with light border only |
 | Wide tool embed | `.tools-grid` | Grid wrapper for web components; optional rule above when following `.tools-list` |
 
-Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** / tool titles ≈1.05rem, body/secondary text ≈0.85–0.95rem, hero **`h1`** (SuperPixel) ≈2.25rem. **`h1`** is for the main Oddbits hero only.
+Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** / tool titles ≈1.05rem, body/secondary text ≈0.85–0.95rem, hero **`h1`** (Press Start 2P) ≈1.75rem. **`h1`** is for the main Oddbits hero only.
 
 ## Links & buttons
 

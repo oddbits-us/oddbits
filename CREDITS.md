@@ -19,15 +19,14 @@ freely. Big thanks to all of them.
   - Used as the emoji font across desktop icons, window titles, and
     decorative glyphs in `apps/web/`.
 
-- **SuperPixel** — `SuperPixel.ttf`
+- **Press Start 2P** — `PressStart2P-Regular.ttf`
+  - Designed by [Cody "CodeMan38" Boisclair](https://zone38.net/)
+    (`cody@zone38.net`).
+  - Source: [Google Fonts — Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P).
+  - License: [SIL Open Font License v1.1](apps/web/public/fonts/PressStart2P.LICENSE.txt).
+  - "Press Start 2P" is a Reserved Font Name under the OFL — we ship the
+    font unmodified and refer to it by its original name.
   - Used for the large hero title inside the main Oddbits desktop window.
-  - **License status: needs verification** — the bundled file has no
-    embedded copyright/designer metadata (just `Version 1.000;;SuperPixel;2024;FL830`).
-    If this font isn't authored in-house and isn't redistributable under
-    permissive terms, replace it with a font that is (e.g. SIL OFL-licensed
-    pixel fonts like *Silkscreen*, *Press Start 2P*, *VT323*, or
-    *Pixelify Sans*). Until that's confirmed, treat this asset as a known
-    open question, not a green light.
 
 ## Runtime dependencies (key ones)
 
