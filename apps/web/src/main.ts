@@ -118,91 +118,123 @@ document.addEventListener('DOMContentLoaded', () => {
   function spreadWindowsOnLoad(controllers: WindowController[]) {
     if (controllers.length === 0) return;
 
-    const pad = 10;
-    const gap = 18;
+    const iw = window.innerWidth;
+    const ih = window.innerHeight;
+    const padX = Math.max(10, Math.round(iw * 0.02));
+    const padY = Math.max(10, Math.round(ih * 0.02));
+    /** Minimum gap between window frames when packing (non-overlap). */
+    const margin = Math.max(6, Math.round(Math.min(iw, ih) * 0.01));
+
+    const badgeStrip = document.querySelector('.site-badge-strip') as HTMLElement | null;
+    const badgeH = badgeStrip?.getBoundingClientRect().height ?? 44;
+    const bottomReserve = badgeH + Math.max(6, Math.round(ih * 0.008));
+
+    const iconGutter = 18;
     const iconRight = [...desktopIcons].reduce((max, icon) => {
       const r = (icon as HTMLElement).getBoundingClientRect();
       return Math.max(max, r.right);
     }, 0);
-    let leftBound = iconRight > 0 ? iconRight + gap : pad;
-    const rightBound = window.innerWidth - pad;
-    const topBound = pad;
-    const bottomBound = window.innerHeight - pad;
-    if (rightBound - leftBound < 260) leftBound = pad;
+    let leftBound = iconRight > 0 ? iconRight + iconGutter : padX;
+    const rightBound = iw - padX;
+    const topBound = padY;
+    const bottomBound = ih - padY - bottomReserve;
+    if (rightBound - leftBound < 120) leftBound = padX;
 
     const visible = controllers.filter((c) => c.el.style.display !== 'none');
     if (visible.length === 0) return;
 
-    const preferredOrder = [
+    /**
+     * Preference order → placement order. Layout is column-major: fill top→bottom, then next column
+     * left→right (read order). Vertical surplus is split evenly (margins + gaps), not row top-aligned.
+     */
+    const PREFERRED_SPREAD_ORDER = [
       'window-oddbits',
       'window-docs',
       'window-imagebits',
       'window-gifbits',
       'window-comingsoon',
       'window-about',
-    ];
-    const preferredRank = new Map(preferredOrder.map((id, idx) => [id, idx]));
+    ] as const;
+    const spreadRank = new Map<string, number>(
+      PREFERRED_SPREAD_ORDER.map((id, i) => [id, i] as [string, number])
+    );
     const ordered = [...visible].sort((a, b) => {
-      const ar = preferredRank.get(a.el.id) ?? Number.MAX_SAFE_INTEGER;
-      const br = preferredRank.get(b.el.id) ?? Number.MAX_SAFE_INTEGER;
-      return ar - br;
+      const ra = spreadRank.get(a.el.id) ?? 1000;
+      const rb = spreadRank.get(b.el.id) ?? 1000;
+      if (ra !== rb) return ra - rb;
+      return a.el.id.localeCompare(b.el.id);
     });
 
-    const widthSpace = Math.max(240, rightBound - leftBound);
-    const heightSpace = Math.max(220, bottomBound - topBound);
-    const maxCols = widthSpace >= 620 ? 2 : 1;
+    const preferenceIndex = new Map<WindowController, number>(
+      ordered.map((c, i) => [c, i])
+    );
 
-    type Placement = { controller: WindowController; left: number; top: number };
-    const targets: Placement[] = [];
+    const widthSpace = Math.max(1, rightBound - leftBound);
+    const heightSpace = Math.max(1, bottomBound - topBound);
+    const columnGap = Math.max(margin, Math.round(iw * 0.015));
+    const minStackGap = margin;
 
-    const layoutColumn = (
-      columnItems: WindowController[],
-      x: number,
-      columnWidth: number
-    ) => {
+    const rectHeight = (c: WindowController) => c.el.getBoundingClientRect().height;
+
+    function splitIntoColumnsVerticalFill(items: WindowController[]): WindowController[][] {
+      const cols: WindowController[][] = [];
+      let cur: WindowController[] = [];
+      for (const item of items) {
+        const h = rectHeight(item);
+        const sumExisting = cur.reduce((s, w) => s + rectHeight(w), 0);
+        const newCount = cur.length + 1;
+        const gapNeed = (newCount - 1) * minStackGap;
+        if (cur.length > 0 && sumExisting + h + gapNeed > heightSpace) {
+          cols.push(cur);
+          cur = [];
+        }
+        cur.push(item);
+      }
+      if (cur.length) cols.push(cur);
+      return cols;
+    }
+
+    const columns = splitIntoColumnsVerticalFill(ordered);
+
+    const targets: { controller: WindowController; left: number; top: number }[] = [];
+
+    /** Single column: equal vertical bands + minimum gaps between windows (no shared row baseline). */
+    const layoutColumn = (columnItems: WindowController[], x: number, columnWidth: number) => {
       if (columnItems.length === 0) return;
+      const n = columnItems.length;
       const heights = columnItems.map((c) => c.el.getBoundingClientRect().height);
       const totalH = heights.reduce((sum, h) => sum + h, 0);
-      const freeY = Math.max(0, heightSpace - totalH);
-      const verticalGutter = freeY / (columnItems.length + 1);
-      const dynamicGap = columnItems.length > 1 ? verticalGutter : 0;
+      const reservedBetween = n > 1 ? (n - 1) * minStackGap : 0;
+      const freeY = Math.max(0, heightSpace - totalH - reservedBetween);
+      const verticalGutter = freeY / (n + 1);
       let y = topBound + verticalGutter;
 
-      columnItems.forEach((controller) => {
+      columnItems.forEach((controller, idx) => {
         const rect = controller.el.getBoundingClientRect();
         const maxY = bottomBound - rect.height;
         const nextTop = Math.max(topBound, Math.min(y, maxY));
         const centeredInColumn = x + Math.max(0, (columnWidth - rect.width) / 2);
         const nextLeft = Math.max(leftBound, Math.min(centeredInColumn, rightBound - rect.width));
-        targets.push({ controller, left: nextLeft, top: nextTop });
-        y = nextTop + rect.height + dynamicGap;
+        targets.push({ controller, left: Math.round(nextLeft), top: Math.round(nextTop) });
+        const gapAfter = idx < n - 1 ? minStackGap + verticalGutter : verticalGutter;
+        y = nextTop + rect.height + gapAfter;
       });
     };
 
-    if (maxCols === 1 || ordered.length <= 2) {
-      const singleWidth = Math.max(...ordered.map((c) => c.el.getBoundingClientRect().width));
-      const freeX = Math.max(0, widthSpace - singleWidth);
-      const x = leftBound + freeX / 2;
-      layoutColumn(ordered, x, singleWidth);
-    } else {
-      const leftItems = ordered.slice(0, 2);
-      const rightItems = ordered.slice(2);
-      const leftW = Math.max(...leftItems.map((c) => c.el.getBoundingClientRect().width));
-      const rightW = Math.max(...rightItems.map((c) => c.el.getBoundingClientRect().width));
-      const neededW = leftW + gap + rightW;
-
-      if (neededW > widthSpace) {
-        const singleWidth = Math.max(...ordered.map((c) => c.el.getBoundingClientRect().width));
-        const freeX = Math.max(0, widthSpace - singleWidth);
-        const x = leftBound + freeX / 2;
-        layoutColumn(ordered, x, singleWidth);
-      } else {
-        const freeX = widthSpace - leftW - rightW;
-        const gutter = freeX / 3;
-        const leftX = leftBound + gutter;
-        const rightX = leftX + leftW + gutter;
-        layoutColumn(leftItems, leftX, leftW);
-        layoutColumn(rightItems, rightX, rightW);
+    const colWidths = columns.map((col) =>
+      col.length === 0 ? 0 : Math.max(...col.map((c) => c.el.getBoundingClientRect().width))
+    );
+    const nCols = columns.length;
+    const totalInnerW =
+      colWidths.reduce((a, w) => a + w, 0) + (nCols > 1 ? (nCols - 1) * columnGap : 0);
+    const sidePad = Math.max(0, (widthSpace - totalInnerW) / 2);
+    let xCol = leftBound + sidePad;
+    for (let j = 0; j < nCols; j++) {
+      const w = colWidths[j] ?? 0;
+      const col = columns[j];
+      if (col && col.length > 0) {
+        layoutColumn(col, xCol, w);
+        xCol += w + columnGap;
       }
     }
 
@@ -217,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         x: targetX,
         y: targetY,
         duration: 680,
-        delay: i * 24,
+        delay: (preferenceIndex.get(controller) ?? i) * 24,
         easing: 'easeOutQuint',
         update: () => {
           controller.setOffset(current.x, current.y);
