@@ -54,6 +54,22 @@ exists.
 If you find anything that contradicts this pledge, that's a bug. Please
 report it via [`SECURITY.md`](SECURITY.md).
 
+## Sustainability for maintainers
+
+Oddbits is **free for users** and intended to stay **light on maintainers**:
+volunteer time, plus optional personal choices (for example a custom domain or
+your own AI tooling if you use it). The project should not depend on recurring
+paid services, subscriptions, or infrastructure that shifts ongoing cost onto
+maintainers without explicit agreement. Prefer simple, free-tier-friendly
+tooling for hosting, CI, and collaboration—and call out any proposal that adds
+new bills so maintainers can decide consciously.
+
+## Independence
+
+Oddbits does **not** solicit sponsors or investment and is **not** aimed at a
+sale or acquisition. There is no `.github/FUNDING.yml` by design. Treat it as a
+long-term community gift, not a startup runway.
+
 ## A Note from the Bench
 
 I'm not a lawyer (and I know you probably aren't either).

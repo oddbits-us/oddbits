@@ -18,6 +18,8 @@ Bits inherit these constraints from the project:
 - **No accounts, no API keys, no BYOK surfaces.** If a bit needs a model, it runs locally (e.g. WASM/ONNX via transformers.js).
 - **Minimal dependencies.** Vanilla TypeScript; no UI frameworks for libraries or the desktop shell.
 - **Credit your sources.** Bundled fonts/assets and meaningful deps go in `CREDITS.md` in the same PR.
+- **Sustainability (guidance):** prefer free tiers and low ongoing cost for maintainers; avoid recurring paid services without explicit maintainer agreement. Full notes in `AGENTS.md`.
+- **Independence (guidance):** no soliciting sponsors or positioning for sale/acquisition; no `.github/FUNDING.yml` or sponsor UX unless a maintainer directs it. Full notes in `AGENTS.md`.
 
 If a request would violate any of these, surface it before proceeding. Full version in `AGENTS.md` at the repo root.
 

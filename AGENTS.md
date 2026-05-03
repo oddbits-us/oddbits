@@ -28,6 +28,22 @@ explicit human OK and a written rationale in the PR.
    meaningful dependency gets named in `CREDITS.md`. When you add a new one,
    add the credit in the same PR.
 
+## Sustainability for maintainers (guidance)
+
+The project should **not impose a financial burden on maintainers**. Prefer free
+tiers, community tooling, and volunteer time. Optional personal spend (e.g. a
+domain, your own AI tokens) is fine. Avoid introducing recurring paid services,
+paid-only workflows, or patterns that rack up ongoing cost **unless a human
+maintainer explicitly agrees** and the rationale is documented (e.g. in the PR).
+Keep it simple, voluntary, and free—at launch and as the project grows.
+
+## Independence (guidance)
+
+The project **does not** solicit sponsors or position itself for sale or
+acquisition. Do not add sponsor surfaces (e.g. `.github/FUNDING.yml`, donation
+links in the shipped app), fundraising copy, or “exit” framing **unless a
+maintainer explicitly directs it**.
+
 ## What is a "bit"?
 
 A **bit** is a self-contained tool. The canonical reference is
@@ -96,9 +112,12 @@ Read these in order whenever you start a new task in this repo:
 - Don't loosen the CSP in `render.yaml` without explicit human approval.
 - Don't bundle a font, image, or third-party asset without crediting it in
   `CREDITS.md` and shipping its license file.
+- Don't add sponsor buttons, funding manifests, or fundraising UX unless a
+  maintainer explicitly asked for it.
 
 ## When unsure, ask
 
-If a request would violate any pledge above, surface the conflict to the
+If a request would violate any pledge above, or would saddle maintainers with
+new recurring cost without clear agreement, surface the conflict to the
 human before proceeding. Better to pause for 30 seconds than ship a tool
 that betrays the project's guarantee to its users.

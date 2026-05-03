@@ -14,6 +14,20 @@ If you're using an AI coding agent, point it at `AGENTS.md` before you start the
 
 This project is released under the **MIT License** (see the [`LICENSE`](./LICENSE) file in the repository root). Bundled assets (fonts, etc.) carry their own licenses; see [`CREDITS.md`](./CREDITS.md).
 
+## Sustainability and cost
+
+Oddbits aims to be **free for users** and **inexpensive to run**: maintainer
+time first; optional personal choices (e.g. a custom domain, your own AI tooling)
+second. When you propose hosting, CI, integrations, or dependencies, **prefer
+free tiers and avoid recurring bills** for the project unless maintainers
+explicitly agree. If a change would introduce paid-only services or shift
+ongoing cost to maintainers, **say so in the PR** and wait for agreement. See
+[`AGENTS.md`](./AGENTS.md) for the full sustainability guidance.
+
+Oddbits does **not** solicit sponsors or investment and is **not** aimed at an
+acquisition. Please do not add sponsor tooling, donation flows, or similar
+fundraising surfaces in a PR without maintainer discussion first.
+
 ## Commits and versioning
 
 Releases use [Release Please](https://github.com/googleapis/release-please) with [Conventional Commits](https://www.conventionalcommits.org/). Use clear prefixes so versions and changelogs stay accurate:
