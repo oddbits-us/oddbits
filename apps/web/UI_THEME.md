@@ -132,7 +132,7 @@ Keep this structure visually consistent across bits so users can instantly orien
 | Tool list row | `.tools-list` → `.tool-item` + `.tool-icon` + `.tool-info` | Flat rows; `--window-inner-rule` between items |
 | Code / install docs | `.docs-section` | Stacked sections separated by rules; `<pre><code>` with light border only |
 | Wide tool embed | `.tools-grid` | Grid wrapper for web components; optional rule above when following `.tools-list` |
-| Bit help dialog | `.bit-help-dialog` + `.window` + `.window-content` (see `BitElement`) | Same typography as docs/tool windows: **`h3`** = `--color-text` (not link cyan), body **`p`** = `--color-text-secondary` / normal weight, inline **`a`** = accent → pink hover (styled in `styles.css`; no raw browser blue) |
+| Bit help dialog | `.bit-help-dialog` + `.window` + `.window-content` (see `BitElement`) | Prefer the **Readme pattern**: optional **`h2`** title + stacked **`.docs-section`** blocks (rules + spacing like `#window-docs`). That avoids flat paragraphs fighting `.bit-help-dialog .window-content p { margin: 0 }`. Same **`h3`** / **`p`** / **`ul`** / **`pre`** treatment as `.docs-section` in `styles.css`; inline **`a`** = accent → pink hover. Example: `apps/web/src/components/gifbits.ts` help shell. |
 
 Typography inside windows is **compact**: **`h2`** ≈1.2rem, section **`h3`** / tool titles ≈1.05rem, body/secondary text ≈0.85–0.95rem, hero **`h1`** (Press Start 2P) ≈1.75rem. **`h1`** is for the main Oddbits hero only. The Oddbits hero tagline uses **`.window--hero .window-content > p`** (bold, slightly larger) — that rule is scoped to the hero window only; do not rely on a bare `.window-content > p` selector for generic window copy.
 

@@ -30,7 +30,7 @@
  *   4. DESIGN SYSTEM — universal controls (button, input, range slider,
  *      popover, combo button, help trigger). Reuse these in every bit.
  *   5. Flat window interiors (.tools-list, .docs-section)
- *   6. Component-specific layout (odd-imagebits, imagebits-workshop-portal)
+ *   6. Component-specific layout (odd-imagebits, odd-gifbits, workshop portals)
  * Thick border + --shadow are only on top-level .window (and modal .window dialogs), not inner panels.
  */
 
@@ -1074,8 +1074,17 @@ section h2,
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.8rem;
   line-height: 1.45;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   margin-bottom: var(--spacing-sm);
+}
+
+/* Help dialogs: long command lines wrap instead of widening the panel */
+.bit-help-dialog .window-content pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .docs-section p {
@@ -1358,6 +1367,134 @@ odd-imagebits .imagebits-intro-error {
   background: rgba(0, 0, 0, 0.35);
 }
 
+/* GifBits — same shell pattern as ImageBits (apps/web/src/components/gifbits.ts) */
+odd-gifbits {
+  display: block;
+  position: relative;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+odd-gifbits .gifbits-shell {
+  padding: 0;
+}
+
+odd-gifbits .drop-zone {
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+odd-gifbits .drop-zone:hover,
+odd-gifbits .drop-zone.dragover {
+  border-color: var(--color-accent);
+  background: rgba(0, 240, 255, 0.08);
+}
+
+odd-gifbits .drop-zone input[type="file"] {
+  display: none;
+}
+
+odd-gifbits .drop-zone-text {
+  color: var(--color-text-secondary);
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: 0.9rem;
+}
+
+odd-gifbits .drop-zone-text strong {
+  color: var(--color-accent);
+}
+
+odd-gifbits .gifbits-intro-error {
+  color: #ff8e9a;
+  font-size: 0.85rem;
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 2px solid var(--color-error);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.window.gifbits-dialog-window.gifbits-workshop {
+  position: fixed;
+  margin: 0;
+  width: min(var(--window-dialog-max-width), calc(100vw - 24px));
+  max-height: min(88vh, 900px);
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+}
+
+.window.gifbits-dialog-window.gifbits-workshop[hidden] {
+  display: none;
+}
+
+.window.gifbits-dialog-window.gifbits-help-dialog {
+  position: fixed;
+  margin: 0;
+  width: min(560px, calc(100vw - 24px));
+  max-height: min(86vh, 720px);
+  z-index: 410;
+}
+
+.window.gifbits-dialog-window.gifbits-help-dialog[hidden] {
+  display: none;
+}
+
+.gifbits-workshop-body {
+  min-height: 0;
+  padding: var(--spacing-md);
+}
+
+.gifbits-workshop-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.gifbits-preview-stage {
+  background: #0a0714;
+  border: 2px solid var(--color-border);
+  padding: var(--spacing-sm);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.6), inset -2px -2px 0 rgba(255, 255, 255, 0.06);
+}
+
+.gifbits-preview-video {
+  max-width: 100%;
+  max-height: min(52vh, 420px);
+  height: auto;
+  vertical-align: middle;
+}
+
+.gifbits-frame-estimate {
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  margin: var(--spacing-xs) 0 0;
+  line-height: 1.35;
+}
+
+.gifbits-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+@media (max-width: 720px) {
+  .gifbits-workshop-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ImageBits process UI: floating dialog window (no dimming overlay), portaled to document.body — see imagebits.ts */
 .window.imagebits-dialog-window.imagebits-workshop-portal.imagebits-workshop {
   position: fixed;
@@ -1444,6 +1581,54 @@ odd-imagebits .imagebits-intro-error {
   padding: 1px 4px;
   background: rgba(0, 0, 0, 0.4);
   color: var(--color-success);
+}
+
+/*
+ * Readme-style `.docs-section` stacks inside help dialogs.
+ * Base `.bit-help-dialog .window-content p { margin: 0 }` flattens vertical rhythm; restore it here.
+ */
+.bit-help-dialog .window-content .docs-section p {
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.bit-help-dialog .window-content .docs-section p:last-child {
+  margin-bottom: 0;
+}
+
+.bit-help-dialog .window-content .docs-section h3 {
+  margin-bottom: var(--spacing-sm);
+  margin-top: 0;
+}
+
+.bit-help-dialog .window-content .docs-section ul {
+  color: var(--color-text-secondary);
+}
+
+.gifbits-help-dialog .gifbits-help-content {
+  display: grid;
+  gap: 0;
+}
+
+.gifbits-help-dialog .gifbits-help-content pre {
+  margin-top: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+  max-height: min(42vh, 320px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.gifbits-help-dialog .gifbits-help-content .gifbits-help-privacy {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  padding: var(--spacing-sm);
+  border: var(--window-inner-rule);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 /* Also has .window-content: flex, overflow, padding from global; tighten padding for this panel */

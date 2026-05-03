@@ -4,13 +4,19 @@
   "private": true,
   "description": "Web interface for oddbits tools",
   "scripts": {
+    "predev": "node ./scripts/vendor-ffmpeg-core.mjs",
     "dev": "vite",
+    "prebuild": "node ./scripts/vendor-ffmpeg-core.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@oddbits/core": "workspace:*",
+    "@oddbits/gifbits": "workspace:*",
     "@oddbits/imagebits": "workspace:*",
     "animejs": "^3.2.2",
     "fflate": "^0.8.2"
@@ -21,4 +27,3 @@
     "vite": "^5.0.0"
   }
 }
-

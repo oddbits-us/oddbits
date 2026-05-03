@@ -43,6 +43,14 @@ These ship with the published packages or the deployed website:
   zip support, used by both the CLI and the web component for bulk export.
 - **[`anime.js` v3](https://animejs.com/)** (MIT) — the entrance and spread
   animations on the desktop shell.
+- **[`@ffmpeg/ffmpeg`](https://github.com/ffmpegwasm/ffmpeg.wasm)** (MIT) +
+  **[`@ffmpeg/util`](https://github.com/ffmpegwasm/ffmpeg.wasm)** (MIT) +
+  **[`@ffmpeg/core`](https://github.com/ffmpegwasm/ffmpeg.wasm)**
+  (GPL-2.0-or-later) — WebAssembly build of ffmpeg for GifBits in the
+  browser. The wasm binary is vendored from `node_modules` into
+  `apps/web/public/vendor/ffmpeg/` at build time (same-origin; no CDN fetch).
+  Per the GPL, the core engine is free software; the MIT Oddbits app links to
+  it as a separate component.
 
 ## Build / dev dependencies
 

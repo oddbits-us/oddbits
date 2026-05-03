@@ -1,0 +1,75 @@
+{
+  "name": "@oddbits/gifbits",
+  "version": "0.1.0",
+  "description": "Plan animated AVIF, WebP, GIF, or PNG-sequence exports from video (ffmpeg)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oddbits-us/oddbits.git",
+    "directory": "packages/gifbits"
+  },
+  "homepage": "https://github.com/oddbits-us/oddbits/tree/main/packages/gifbits",
+  "bugs": {
+    "url": "https://github.com/oddbits-us/oddbits/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "browser": "./dist/browser.mjs",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "gifbits": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/browser.mjs",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.mjs"
+    },
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "test": "node --test --import tsx test/node-api.test.ts",
+    "test:cli": "npm run build && node --test --import tsx test/cli.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0 <23.0.0"
+  },
+  "keywords": [
+    "oddbits",
+    "ffmpeg",
+    "webp",
+    "gif",
+    "video"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@oddbits/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.0"
+  }
+}

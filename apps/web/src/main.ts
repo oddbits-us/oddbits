@@ -3,6 +3,7 @@
  * HTML/CSS conventions for new tools (icons, windows, modals): apps/web/UI_THEME.md
  */
 import './styles.css'
+import './components/gifbits'
 import './components/imagebits'
 import anime from 'animejs'
 import {
@@ -136,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'window-oddbits',
       'window-docs',
       'window-imagebits',
+      'window-gifbits',
       'window-comingsoon',
       'window-about',
     ];

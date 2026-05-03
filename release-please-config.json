@@ -21,6 +21,19 @@
           "path": "src/version.ts"
         }
       ]
+    },
+    "packages/gifbits": {
+      "component": "gifbits",
+      "release-type": "node",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "src/version.ts"
+        }
+      ]
     }
   }
 }

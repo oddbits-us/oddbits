@@ -26,9 +26,21 @@ importers:
 
   apps/web:
     dependencies:
+      '@ffmpeg/core':
+        specifier: ^0.12.10
+        version: 0.12.10
+      '@ffmpeg/ffmpeg':
+        specifier: ^0.12.15
+        version: 0.12.15
+      '@ffmpeg/util':
+        specifier: ^0.12.2
+        version: 0.12.2
       '@oddbits/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@oddbits/gifbits':
+        specifier: workspace:*
+        version: link:../../packages/gifbits
       '@oddbits/imagebits':
         specifier: workspace:*
         version: link:../../packages/imagebits
@@ -54,6 +66,22 @@ importers:
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/gifbits:
+    dependencies:
+      '@oddbits/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(tsx@4.21.0)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
@@ -709,6 +737,28 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@ffmpeg/core@0.12.10:
+    resolution: {integrity: sha512-dzNplnn2Nxle2c2i2rrDhqcB19q9cglCkWnoMTDN9Q9l3PvdjZWd1HfSPjCNWc/p8Q3CT+Es9fWOR0UhAeYQZA==}
+    engines: {node: '>=16.x'}
+    dev: false
+
+  /@ffmpeg/ffmpeg@0.12.15:
+    resolution: {integrity: sha512-1C8Obr4GsN3xw+/1Ww6PFM84wSQAGsdoTuTWPOj2OizsRDLT4CXTaVjPhkw6ARyDus1B9X/L2LiXHqYYsGnRFw==}
+    engines: {node: '>=18.x'}
+    dependencies:
+      '@ffmpeg/types': 0.12.4
+    dev: false
+
+  /@ffmpeg/types@0.12.4:
+    resolution: {integrity: sha512-k9vJQNBGTxE5AhYDtOYR5rO5fKsspbg51gbcwtbkw2lCdoIILzklulcjJfIDwrtn7XhDeF2M+THwJ2FGrLeV6A==}
+    engines: {node: '>=16.x'}
+    dev: false
+
+  /@ffmpeg/util@0.12.2:
+    resolution: {integrity: sha512-ouyoW+4JB7WxjeZ2y6KpRvB+dLp7Cp4ro8z0HIVpZVCM7AwFlHa0c4R8Y/a4M3wMqATpYKhC7lSFHQ0T11MEDw==}
+    engines: {node: '>=18.x'}
+    dev: false
 
   /@huggingface/jinja@0.5.8:
     resolution: {integrity: sha512-ZdElB7DPS7QQS8ZnFc5RPPtkg+eN11z8AmIZWAyes6pSbwXqiFB/POVevvm01begdSX1ho9Gxln/F6qlQMsuaA==}
