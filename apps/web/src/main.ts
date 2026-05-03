@@ -144,10 +144,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const iw = window.innerWidth;
     const ih = window.innerHeight;
-    const padX = Math.max(10, Math.round(iw * 0.02));
-    const padY = Math.max(10, Math.round(ih * 0.02));
+    /** Same idea as CSS vmin/vmax: scale margins off the shorter/longer viewport edge. */
+    const vmin = Math.min(iw, ih);
+    const vmax = Math.max(iw, ih);
+    const isLandscape = iw >= ih;
+    /**
+     * Landscape: more top/bottom breathing room, tighter side padding so packing uses horizontal space
+     * (also shrinks heightSpace → comfort split favors extra columns). Portrait: opposite tilt.
+     */
+    let padX: number;
+    let padY: number;
+    if (isLandscape) {
+      const t = Math.min(Math.max(iw / ih - 1, 0) / 1.25, 1);
+      padX = Math.max(8, Math.round(vmin * (0.013 - 0.005 * t)));
+      padY = Math.max(
+        10,
+        Math.round(vmin * (0.02 + 0.022 * t) + vmax * 0.007 * t)
+      );
+    } else {
+      const t = Math.min(Math.max(ih / iw - 1, 0) / 1.25, 1);
+      padX = Math.max(10, Math.round(vmin * (0.02 + 0.012 * t)));
+      padY = Math.max(8, Math.round(vmin * (0.022 - 0.008 * t)));
+    }
     /** Minimum gap between window frames when packing (non-overlap). */
-    const margin = Math.max(6, Math.round(Math.min(iw, ih) * 0.01));
+    const margin = Math.max(6, Math.round(vmin * 0.01));
 
     const badgeStrip = document.querySelector('.site-badge-strip') as HTMLElement | null;
     const badgeH = badgeStrip?.getBoundingClientRect().height ?? 44;
@@ -168,8 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (visible.length === 0) return;
 
     /**
-     * Preference order → placement order. Layout is column-major: fill top→bottom, then next column
-     * left→right (read order). Vertical surplus is split evenly (margins + gaps), not row top-aligned.
+     * Preference order → placement order. Column-major fill, then rebalance tall→short columns
+     * (move bottom of overloaded column to top of next). Horizontal slack widens inter-column gaps
+     * on large viewports; small screens stay centered.
      */
     const PREFERRED_SPREAD_ORDER = [
       'window-oddbits',
@@ -197,32 +218,141 @@ document.addEventListener('DOMContentLoaded', () => {
     const heightSpace = Math.max(1, bottomBound - topBound);
     const columnGap = Math.max(margin, Math.round(iw * 0.015));
     const minStackGap = margin;
+    /** Prefer more columns when vertical slack per band would fall below this (if width allows). */
+    const minComfortGutter = Math.max(minStackGap, Math.round(ih * 0.012));
+    /** Extra vertical space above first / below last band vs between-window bands (layoutColumn only). */
+    const GUTTER_OUTER_WEIGHT = 1.35;
+    const GUTTER_INNER_WEIGHT = 1;
 
     const rectHeight = (c: WindowController) => c.el.getBoundingClientRect().height;
+    const rectWidth = (c: WindowController) => c.el.getBoundingClientRect().width;
+
+    function colMaxWidth(col: WindowController[]): number {
+      return col.length === 0 ? 0 : Math.max(...col.map((c) => rectWidth(c)));
+    }
+
+    function totalGridWidth(columnList: WindowController[][]): number {
+      if (columnList.length === 0) return 0;
+      let w = 0;
+      for (let i = 0; i < columnList.length; i++) {
+        w += colMaxWidth(columnList[i]!);
+        if (i < columnList.length - 1) w += columnGap;
+      }
+      return w;
+    }
+
+    /** Uniform freeY/(n+1) — matches pre-weighted layout so comfort split aligns with packing. */
+    function uniformVerticalGutter(curCol: WindowController[], addItem: WindowController): number {
+      const n = curCol.length + 1;
+      const heights = [...curCol.map(rectHeight), rectHeight(addItem)];
+      const totalH = heights.reduce((s, h) => s + h, 0);
+      const reservedBetween = n > 1 ? (n - 1) * minStackGap : 0;
+      const freeY = Math.max(0, heightSpace - totalH - reservedBetween);
+      return freeY / (n + 1);
+    }
+
+    function comfortFitsHorizontally(
+      finishedCols: WindowController[][],
+      curCol: WindowController[],
+      item: WindowController
+    ): boolean {
+      return totalGridWidth([...finishedCols, curCol, [item]]) <= widthSpace;
+    }
 
     function splitIntoColumnsVerticalFill(items: WindowController[]): WindowController[][] {
       const cols: WindowController[][] = [];
       let cur: WindowController[] = [];
+
       for (const item of items) {
         const h = rectHeight(item);
-        const sumExisting = cur.reduce((s, w) => s + rectHeight(w), 0);
-        const newCount = cur.length + 1;
-        const gapNeed = (newCount - 1) * minStackGap;
-        if (cur.length > 0 && sumExisting + h + gapNeed > heightSpace) {
-          cols.push(cur);
-          cur = [];
+
+        if (cur.length === 0) {
+          cur.push(item);
+          continue;
         }
-        cur.push(item);
+
+        let sumExisting = cur.reduce((s, w) => s + rectHeight(w), 0);
+        let newCount = cur.length + 1;
+        let gapNeed = (newCount - 1) * minStackGap;
+
+        if (sumExisting + h + gapNeed > heightSpace) {
+          cols.push(cur);
+          cur = [item];
+          continue;
+        }
+
+        const vGutter = uniformVerticalGutter(cur, item);
+        const tight =
+          vGutter < minComfortGutter && cur.length > 0 && comfortFitsHorizontally(cols, cur, item);
+
+        if (tight) {
+          cols.push(cur);
+          cur = [item];
+        } else {
+          cur.push(item);
+        }
       }
+
       if (cur.length) cols.push(cur);
       return cols;
     }
 
+    /** Column-major flatten order must stay equal to `ordered`; only move last(i) → front(i+1). */
+    function columnFitsInHeightSpace(col: WindowController[]): boolean {
+      if (col.length === 0) return true;
+      const th = col.reduce((s, c) => s + rectHeight(c), 0);
+      const gaps = col.length > 1 ? (col.length - 1) * minStackGap : 0;
+      return th + gaps <= heightSpace;
+    }
+
+    /**
+     * If a column is much taller than the next, move the bottom window to the top of the next column
+     * (when heights allow). Fixes e.g. [2,3,1] → [2,2,2]. Requires imbalance ≥2 to avoid 3↔2 oscillation.
+     */
+    function rebalanceColumnsAdjacent(cols: WindowController[][]): void {
+      for (let round = 0; round < 50; round++) {
+        let changed = false;
+        for (let i = 0; i < cols.length - 1; i++) {
+          const left = cols[i]!;
+          const right = cols[i + 1]!;
+          if (left.length <= 1) continue;
+          if (left.length <= right.length + 1) continue;
+
+          const moved = left[left.length - 1]!;
+          left.pop();
+          right.unshift(moved);
+          if (columnFitsInHeightSpace(left) && columnFitsInHeightSpace(right)) {
+            changed = true;
+          } else {
+            right.shift();
+            left.push(moved);
+          }
+        }
+        if (!changed) break;
+      }
+    }
+
     const columns = splitIntoColumnsVerticalFill(ordered);
+    rebalanceColumnsAdjacent(columns);
 
     const targets: { controller: WindowController; left: number; top: number }[] = [];
 
-    /** Single column: equal vertical bands + minimum gaps between windows (no shared row baseline). */
+    /** Distribute freeY with heavier top/bottom bands for optical breathing room. */
+    function splitFreeYWeighted(n: number, freeY: number): number[] {
+      if (n <= 0) return [];
+      const weights: number[] =
+        n === 1
+          ? [GUTTER_OUTER_WEIGHT, GUTTER_OUTER_WEIGHT]
+          : [
+              GUTTER_OUTER_WEIGHT,
+              ...Array(n - 1).fill(GUTTER_INNER_WEIGHT),
+              GUTTER_OUTER_WEIGHT,
+            ];
+      const sumW = weights.reduce((a, b) => a + b, 0);
+      return weights.map((w) => (freeY * w) / sumW);
+    }
+
+    /** Single column: min gaps + weighted surplus vertical bands. */
     const layoutColumn = (columnItems: WindowController[], x: number, columnWidth: number) => {
       if (columnItems.length === 0) return;
       const n = columnItems.length;
@@ -230,8 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalH = heights.reduce((sum, h) => sum + h, 0);
       const reservedBetween = n > 1 ? (n - 1) * minStackGap : 0;
       const freeY = Math.max(0, heightSpace - totalH - reservedBetween);
-      const verticalGutter = freeY / (n + 1);
-      let y = topBound + verticalGutter;
+      const slots = splitFreeYWeighted(n, freeY);
+      let y = topBound + (slots[0] ?? 0);
 
       columnItems.forEach((controller, idx) => {
         const rect = controller.el.getBoundingClientRect();
@@ -240,7 +370,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const centeredInColumn = x + Math.max(0, (columnWidth - rect.width) / 2);
         const nextLeft = Math.max(leftBound, Math.min(centeredInColumn, rightBound - rect.width));
         targets.push({ controller, left: Math.round(nextLeft), top: Math.round(nextTop) });
-        const gapAfter = idx < n - 1 ? minStackGap + verticalGutter : verticalGutter;
+        const gapAfter =
+          idx < n - 1
+            ? minStackGap + (slots[idx + 1] ?? 0)
+            : (slots[idx + 1] ?? 0);
         y = nextTop + rect.height + gapAfter;
       });
     };
@@ -251,14 +384,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const nCols = columns.length;
     const totalInnerW =
       colWidths.reduce((a, w) => a + w, 0) + (nCols > 1 ? (nCols - 1) * columnGap : 0);
-    const sidePad = Math.max(0, (widthSpace - totalInnerW) / 2);
+    const slack = Math.max(0, widthSpace - totalInnerW);
+    /**
+     * Roomy viewports: split slack evenly across left pad, each inter-column gap, and right pad
+     * (nCols+1 bands) so columns are not pinned to edges with huge internal voids. Tight viewports:
+     * symmetric center bunching.
+     */
+    const spreadHorizontal =
+      nCols > 1 &&
+      slack >= Math.max(16, vmin * 0.035) &&
+      widthSpace >= vmin * 1.12;
+
+    let sidePad: number;
+    let gapBetween: number;
+    if (spreadHorizontal && nCols > 0) {
+      const perBand = slack / (nCols + 1);
+      sidePad = perBand;
+      gapBetween = columnGap + perBand;
+    } else {
+      sidePad = Math.max(0, (widthSpace - totalInnerW) / 2);
+      gapBetween = columnGap;
+    }
+
     let xCol = leftBound + sidePad;
     for (let j = 0; j < nCols; j++) {
       const w = colWidths[j] ?? 0;
       const col = columns[j];
       if (col && col.length > 0) {
         layoutColumn(col, xCol, w);
-        xCol += w + columnGap;
+        xCol += w + (j < nCols - 1 ? gapBetween : 0);
       }
     }
 
