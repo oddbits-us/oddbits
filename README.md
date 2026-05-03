@@ -54,6 +54,18 @@ exists.
 If you find anything that contradicts this pledge, that's a bug. Please
 report it via [`SECURITY.md`](SECURITY.md).
 
+## A Note from the Bench
+
+I'm not a lawyer (and I know you probably aren't either).
+
+This project is released **in good faith as a free gift**. I spent many hours and hundreds of my own dollars building tools I wanted for myself, then decided to share them with anyone who finds them useful.
+
+If you like them, use them. They're yours.
+
+Everything is provided **"as-is"** — no warranties, no guarantees. I can't promise the bits are perfect, 100% secure, fully accessible, or bug-free. The web can be litigious, but my sincere hope is this: use what helps you, ignore what doesn't, and please don't sue me.
+
+I don't want your data or your money — just the quiet satisfaction of making something useful that lives entirely on your machine.
+
 ## Packages
 
 | Package | What it does | Where it runs |
