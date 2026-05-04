@@ -72,7 +72,7 @@ export interface BackgroundParams {
 
 export const DEFAULT_BACKGROUND_PARAMS: BackgroundParams = {
   videoUrl: '/oddbits-background-video.webm',
-  playbackRate: 0.7,
+  playbackRate: 0.33,
   maxTextureFps: 30,
   loopHoldSeconds: 0,
 };
