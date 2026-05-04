@@ -50,8 +50,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/imagebits
       animejs:
-        specifier: ^3.2.2
-        version: 3.2.2
+        specifier: ^4.4.1
+        version: 4.4.1
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
@@ -1536,8 +1536,8 @@ packages:
       require-from-string: 2.0.2
     dev: true
 
-  /animejs@3.2.2:
-    resolution: {integrity: sha512-Ao95qWLpDPXXM+WrmwcKbl6uNlC5tjnowlaRYtuVDHHoygjtIPfDUoK9NthrlZsQSKjZXlmji2TrBUAVbiH0LQ==}
+  /animejs@4.4.1:
+    resolution: {integrity: sha512-XimhJw4vPb6tAd6Zaoa6BaspJ8UteQMKvL7Pvrt6MW/6u2UvJs0TB/LLqR1sigaiYvpVPC3Tokr9emcCMhWFhw==}
     dev: false
 
   /ansi-regex@5.0.1:
