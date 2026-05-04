@@ -16,7 +16,7 @@
     "@oddbits/core": "workspace:*",
     "@oddbits/gifbits": "workspace:*",
     "@oddbits/imagebits": "workspace:*",
-    "animejs": "^3.2.2",
+    "animejs": "^4.4.1",
     "fflate": "^0.8.2"
   },
   "devDependencies": {
