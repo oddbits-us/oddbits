@@ -5,6 +5,7 @@
 import './styles.css'
 import './components/gifbits'
 import './components/imagebits'
+import { mountDesktopBackgroundFx } from './desktopBackgroundFx'
 import anime from 'animejs'
 import {
   bakeTranslateIntoPercentAnchor,
@@ -31,6 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll<HTMLElement>('[data-oddbits-version]').forEach((el) => {
     el.textContent = `v${__ODDBITS_VERSION__}`;
   });
+
+  // CRT background effect (WebGPU + CSS fallback). Toggle via the .desktop-crt-btn,
+  // Alt+Shift+B, ?crt=0|1 URL flag, or window.__oddbitsCrt.
+  mountDesktopBackgroundFx();
 
   // Entrance animations
   anime({

@@ -100,16 +100,71 @@ body {
   overflow-x: hidden;
 }
 
-/* Full-viewport desktop wallpaper — CREDITS.md (`oddbits-background-midjourney.webp`) */
+/*
+ * Full-viewport desktop wallpaper — see CREDITS.md (`oddbits-background-video-thumnail.webp`).
+ * Still thumbnail (`background-size: cover`) + `.desktop-bg-fx` (scanlines + vignette) when
+ * CRT is off; WebGPU + video only when CRT is on (`body.crt-on` hides this layer).
+ */
 .desktop-bg {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-image: url('/oddbits-background-midjourney.webp');
+  pointer-events: none;
+  background-color: var(--color-bg);
+  background-image: url('/oddbits-background-video-thumnail.webp');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+.desktop-bg-fx {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.055) 0 1px,
+      transparent 1px 2px
+    ),
+    radial-gradient(
+      ellipse at center,
+      transparent 58%,
+      rgba(0, 0, 0, 0.32) 100%
+    );
+  background-size:
+    auto,
+    100% 100%;
+  background-position:
+    center,
+    center;
+  background-repeat:
+    repeat,
+    no-repeat;
+}
+
+/*
+ * CRT background effect (apps/web/src/desktopBackgroundFx).
+ * `.desktop-bg-canvas` is the WebGPU surface; `body.crt-on` swaps it in for the
+ * static `.desktop-bg` (still image + CSS fx). `body.crt-fallback` is
+ * informational when WebGPU is unavailable (same static stack as above). Toggle via `.desktop-crt-btn`,
+ * Alt+Shift+B, `?crt=0|1`, or `__oddbitsCrt`.
+ */
+.desktop-bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100vw;
+  height: 100vh;
+  display: block;
   pointer-events: none;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+body.crt-on .desktop-bg {
+  display: none;
 }
 
 /*
@@ -675,11 +730,16 @@ input[type="range"]::-moz-range-thumb {
   z-index: 5;
 }
 
-/* One-shot reset: clear localStorage layout + spread windows (see main.ts). */
-.desktop-autolayout-btn {
+/*
+ * Small chrome buttons in the desktop top-right cluster.
+ *  - .desktop-autolayout-btn: clears localStorage layout + spreads windows (see main.ts).
+ *  - .desktop-crt-btn: toggles the CRT background effect (see desktopBackgroundFx).
+ * They share the same look; .desktop-crt-btn just sits to the left of autolayout.
+ */
+.desktop-autolayout-btn,
+.desktop-crt-btn {
   position: absolute;
   top: var(--spacing-md);
-  right: var(--spacing-md);
   z-index: 6;
   padding: 3px 8px;
   font-family: Arial, Tahoma, sans-serif;
@@ -693,14 +753,28 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
 }
 
-.desktop-autolayout-btn:hover {
+.desktop-autolayout-btn {
+  right: var(--spacing-md);
+}
+
+.desktop-crt-btn {
+  right: calc(var(--spacing-md) + 96px);
+}
+
+.desktop-autolayout-btn:hover,
+.desktop-crt-btn:hover {
   background: rgba(35, 42, 58, 0.88);
   border-color: rgba(255, 255, 255, 0.42);
 }
 
-.desktop-autolayout-btn:focus-visible {
+.desktop-autolayout-btn:focus-visible,
+.desktop-crt-btn:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+.desktop-crt-btn[aria-pressed='false'] {
+  opacity: 0.7;
 }
 
 .desktop-icon {

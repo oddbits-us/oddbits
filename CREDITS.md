@@ -28,9 +28,18 @@ freely. Big thanks to all of them.
     font unmodified and refer to it by its original name.
   - Used for the large hero title inside the main Oddbits desktop window.
 
-- **Desktop wallpaper** — `oddbits-background-midjourney.webp` in `apps/web/public/`
-  - Generated image (Midjourney); used as the full-viewport CSS background on the
-    desktop shell (`background-size: cover`).
+- **Desktop background video** — `oddbits-background-video.webm` in `apps/web/public/`
+  - Source imagery regenerated with **Gemini 3.1 Pro**, animated in **Midjourney**, converted to WebM with
+    [FreeConvert](https://www.freeconvert.com/). Decoded in-browser and sampled only by the optional
+    WebGPU CRT desktop background (CRT on).
+
+- **Desktop background (still)** — `oddbits-background-video-thumnail.webp` in `apps/web/public/`
+  - Same creative lineage as the video wallpaper; still image exported to WebP with Oddbits **ImageBits**
+    (`@oddbits/imagebits`). Full-viewport CSS wallpaper when CRT is off (`background-size: cover`), with
+    scanlines + vignette layered above it (see `apps/web/src/styles.css` `.desktop-bg`).
+
+- **Desktop wallpaper (still)** — `oddbits-background-midjourney.webp` in `apps/web/public/`
+  - Generated image (Midjourney); shipped as an alternate/static asset in `apps/web/public/`.
 
 ## Runtime dependencies (key ones)
 
