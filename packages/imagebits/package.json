@@ -64,7 +64,7 @@
     "webp",
     "convert"
   ],
-  "author": "",
+  "author": "Dain Kennison",
   "license": "MIT",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

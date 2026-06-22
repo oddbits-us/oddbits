@@ -48,7 +48,7 @@
     "plugin",
     "core"
   ],
-  "author": "",
+  "author": "Dain Kennison",
   "license": "MIT",
   "devDependencies": {
     "tsup": "^8.0.0",

@@ -62,7 +62,7 @@
     "gif",
     "video"
   ],
-  "author": "",
+  "author": "Dain Kennison",
   "license": "MIT",
   "dependencies": {
     "@oddbits/core": "workspace:*"
