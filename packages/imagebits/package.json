@@ -1,6 +1,6 @@
 {
   "name": "@oddbits/imagebits",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Image processing tools: resize, optimize, and convert formats",
   "repository": {
     "type": "git",
@@ -68,7 +68,7 @@
   "license": "MIT",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
-    "@oddbits/core": "workspace:*",
+    "@oddbits/core": "0.1.1",
     "fflate": "^0.8.2",
     "sharp": "^0.33.5"
   },

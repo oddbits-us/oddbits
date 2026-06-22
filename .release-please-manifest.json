@@ -1,5 +1,5 @@
 {
-  "packages/core": "0.1.0",
-  "packages/imagebits": "0.1.0",
-  "packages/gifbits": "0.1.0"
+  "packages/core": "0.1.1",
+  "packages/imagebits": "0.1.1",
+  "packages/gifbits": "0.1.1"
 }
