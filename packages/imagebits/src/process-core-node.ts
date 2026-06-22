@@ -62,10 +62,10 @@ function formatFromExtension(filePath: string): NormalizedFormat | undefined {
 }
 
 function applyEncoder(
-  pipeline: sharp.Sharp,
+  pipeline: ReturnType<typeof sharp>,
   format: NormalizedFormat,
   quality: number,
-): sharp.Sharp {
+): ReturnType<typeof sharp> {
   const q = Math.round(quality * 100);
   switch (format) {
     case 'webp':
