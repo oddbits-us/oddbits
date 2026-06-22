@@ -1,6 +1,6 @@
 {
   "name": "@oddbits/gifbits",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Plan animated AVIF, WebP, GIF, or PNG-sequence exports from video (ffmpeg)",
   "repository": {
     "type": "git",
@@ -65,7 +65,7 @@
   "author": "Dain Kennison",
   "license": "MIT",
   "dependencies": {
-    "@oddbits/core": "workspace:*"
+    "@oddbits/core": "0.1.1"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

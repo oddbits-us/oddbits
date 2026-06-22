@@ -1,6 +1,6 @@
 {
   "name": "@oddbits/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Core plugin system and utilities for oddbits ecosystem",
   "repository": {
     "type": "git",
