@@ -62,5 +62,5 @@ jobs:
           fi
           echo "$PATHS_RELEASED" | jq -er '.[]' | sort | while IFS= read -r pkg_path; do
             echo "Publishing ${pkg_path} ..."
-            (cd "$pkg_path" && npm publish --access public --no-git-checks)
+            (cd "$pkg_path" && pnpm publish --access public --no-git-checks)
           done
