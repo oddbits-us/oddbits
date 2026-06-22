@@ -68,7 +68,7 @@
   "license": "MIT",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
-    "@oddbits/core": "0.1.1",
+    "@oddbits/core": "workspace:*",
     "fflate": "^0.8.2",
     "sharp": "^0.33.5"
   },
